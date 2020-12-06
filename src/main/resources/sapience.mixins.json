@@ -1,0 +1,23 @@
+{
+  "required": true,
+  "package": "com.infamous.sapience.mixin",
+  "compatibilityLevel": "JAVA_8",
+  "minVersion": "0.8",
+  "refmap": "sapience.refmap.json",
+  "mixins": [
+    "PiglinTasksMixin",
+    "PiglinEntityMixin",
+    "AdmireItemTaskMixin",
+    "HoglinTasksMixin",
+    "HoglinEntityMixin",
+    "AnimalBreedTaskMixin",
+    "PiglinMobsSensorMixin",
+    "StartAdmiringItemTaskMixin"
+  ],
+  "client": [
+    "PiglinModelMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
