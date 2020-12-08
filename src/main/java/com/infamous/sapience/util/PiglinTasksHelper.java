@@ -2,9 +2,8 @@ package com.infamous.sapience.util;
 
 import com.google.common.collect.ImmutableList;
 import com.infamous.sapience.Sapience;
-import com.infamous.sapience.capability.ageable.IAgeable;
 import com.infamous.sapience.mod.ModMemoryModuleTypes;
-import com.infamous.sapience.tasks.CraftGoldEquipmentTask;
+import com.infamous.sapience.tasks.CraftWithGoldTask;
 import com.infamous.sapience.tasks.CreateBabyTask;
 import com.infamous.sapience.tasks.FeedHoglinsTask;
 import com.infamous.sapience.tasks.ShareGoldTask;
@@ -14,6 +13,7 @@ import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.ai.RandomPositionGenerator;
 import net.minecraft.entity.ai.brain.BrainUtil;
 import net.minecraft.entity.ai.brain.memory.MemoryModuleType;
+import net.minecraft.entity.ai.brain.schedule.Activity;
 import net.minecraft.entity.ai.brain.task.*;
 import net.minecraft.entity.item.ItemEntity;
 import net.minecraft.entity.monster.piglin.AbstractPiglinEntity;
@@ -21,9 +21,9 @@ import net.minecraft.entity.monster.piglin.PiglinAction;
 import net.minecraft.entity.monster.piglin.PiglinEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.inventory.EquipmentSlotType;
-import net.minecraft.inventory.Inventory;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.item.UseAction;
 import net.minecraft.loot.LootContext;
 import net.minecraft.loot.LootParameterSets;
 import net.minecraft.loot.LootParameters;
@@ -40,9 +40,9 @@ import java.util.Optional;
 
 public class PiglinTasksHelper {
 
-    public static final Tags.IOptionalNamedTag<Item> PIGLIN_FOOD_ITEMS = ItemTags.createOptional(new ResourceLocation(Sapience.MODID, "piglin_food_items"));
-    public static final ResourceLocation PIGLIN_BARTERING_CHEAP = new ResourceLocation(Sapience.MODID, "gameplay/piglin_bartering_cheap");
-    public static final ResourceLocation PIGLIN_BARTERING_EXPENSIVE = new ResourceLocation(Sapience.MODID, "gameplay/piglin_bartering_expensive");
+    private static final Tags.IOptionalNamedTag<Item> PIGLIN_FOOD_ITEMS = ItemTags.createOptional(new ResourceLocation(Sapience.MODID, "piglin_food_items"));
+    private static final ResourceLocation PIGLIN_BARTERING_CHEAP = new ResourceLocation(Sapience.MODID, "gameplay/piglin_bartering_cheap");
+    private static final ResourceLocation PIGLIN_BARTERING_EXPENSIVE = new ResourceLocation(Sapience.MODID, "gameplay/piglin_bartering_expensive");
 
     private static final RangedInteger RANGED_FEEDING_TIMER = TickRangeConverter.convertRange(30, 120);
 
@@ -55,9 +55,9 @@ public class PiglinTasksHelper {
         } else if (itemStack.isPiglinCurrency()) {
             return PiglinTasksHelper.hasOpenOffhandSlot(piglinEntity);
         } else {
-            boolean canAddItemStackToInventory = AgeableHelper.canAddItemStackToFoodInventory(piglinEntity, itemStack);
+            //boolean canAddItemStackToInventory = AgeableHelper.canAddItemStackToFoodInventory(piglinEntity, itemStack);
             if (PiglinTasksHelper.isPiglinFoodItem(item)) {
-                return !PiglinTasksHelper.hasAteRecently(piglinEntity) && canAddItemStackToInventory;
+                return !PiglinTasksHelper.hasAteRecently(piglinEntity) && hasOpenOffhandSlot(piglinEntity);
             }
             else{
                 return false;
@@ -82,15 +82,6 @@ public class PiglinTasksHelper {
 
     private static void dropItemsNearSelf(AbstractPiglinEntity piglinEntity, List<ItemStack> itemStacks) {
         dropItems(piglinEntity, itemStacks, getNearbyVectorOrPositionVector(piglinEntity));
-    }
-
-    public static void addToFoodInventoryThenDropRemainder(AbstractPiglinEntity piglinEntity, ItemStack itemStack) {
-        IAgeable ageable = AgeableHelper.getAgeableCapability(piglinEntity);
-        if(ageable != null){
-            Inventory foodInventory = ageable.getFoodInventory();
-            ItemStack remainder = foodInventory.addItem(itemStack);
-            dropItemsNearSelf(piglinEntity, Collections.singletonList(remainder));
-        }
     }
 
     public static void setAteRecently(AbstractPiglinEntity piglinEntity) {
@@ -119,7 +110,7 @@ public class PiglinTasksHelper {
         return piglinEntity.getBrain().hasMemory(MemoryModuleType.ATE_RECENTLY);
     }
 
-    private static boolean hasOpenOffhandSlot(PiglinEntity piglinEntity) {
+    public static boolean hasOpenOffhandSlot(PiglinEntity piglinEntity) {
         return piglinEntity.getHeldItemOffhand().isEmpty() || !isPiglinLoved(piglinEntity.getHeldItemOffhand().getItem());
     }
 
@@ -156,7 +147,7 @@ public class PiglinTasksHelper {
                         1),
                 Pair.of(new CreateBabyTask(), 3),
                 Pair.of(new ShareGoldTask<>(), 2),
-                Pair.of(new CraftGoldEquipmentTask<>(), 2),
+                Pair.of(new CraftWithGoldTask<>(), 2),
                 Pair.of(new FeedHoglinsTask<>(), 2)
                 );
 
@@ -178,7 +169,7 @@ public class PiglinTasksHelper {
         piglinEntity.getBrain().replaceMemory(ModMemoryModuleTypes.FED_RECENTLY.get(), true, (long) RANGED_FEEDING_TIMER.getRandomWithinRange(piglinEntity.world.rand));
     }
 
-    public static boolean hasFedRecently(PiglinEntity piglinEntity){
+    private static boolean hasFedRecently(PiglinEntity piglinEntity){
         return piglinEntity.getBrain().hasMemory(ModMemoryModuleTypes.FED_RECENTLY.get());
     }
 
@@ -200,11 +191,11 @@ public class PiglinTasksHelper {
         return !hasNearestPlayerHoldingWantedItem(livingEntity);
     }
 
-    public static void stopTryingToReachAdmireItem(PiglinEntity piglinEntity){
+    public static void removeTimeTryingToReachAdmireItem(PiglinEntity piglinEntity){
         piglinEntity.getBrain().removeMemory(MemoryModuleType.TIME_TRYING_TO_REACH_ADMIRE_ITEM);
     }
 
-    private static void dropOffhandItemAndSetItemStackToOffhand(AbstractPiglinEntity piglinEntity, ItemStack itemStack) {
+    public static void dropOffhandItemAndSetItemStackToOffhand(AbstractPiglinEntity piglinEntity, ItemStack itemStack) {
         if (hasOffhandItem(piglinEntity)) {
             piglinEntity.entityDropItem(piglinEntity.getHeldItem(Hand.OFF_HAND));
         }
@@ -216,27 +207,32 @@ public class PiglinTasksHelper {
     }
 
     private static void setItemStackToOffhandAndPersist(AbstractPiglinEntity piglinEntity, ItemStack itemStack) {
+        /*
         if (itemStack.isPiglinCurrency()) {
             piglinEntity.setItemStackToSlot(EquipmentSlotType.OFFHAND, itemStack);
             piglinEntity.func_233663_d_(EquipmentSlotType.OFFHAND);
         } else {
+
+         */
             piglinEntity.setItemStackToSlot(EquipmentSlotType.OFFHAND, itemStack);
             piglinEntity.func_233663_d_(EquipmentSlotType.OFFHAND);
             piglinEntity.enablePersistence();
-        }
+        //}
 
     }
 
-    private static void clearWalkPath(AbstractPiglinEntity piglinEntity) {
+    public static void clearWalkPath(AbstractPiglinEntity piglinEntity) {
         piglinEntity.getBrain().removeMemory(MemoryModuleType.WALK_TARGET);
         piglinEntity.getNavigator().clearPath();
     }
 
-    private static boolean canTakeFoodItem(AbstractPiglinEntity piglinEntity, ItemStack itemStack) {
-        return !hasAdmiringDisabled(piglinEntity) && !hasAdmiringItem(piglinEntity) && isPiglinFoodItem(itemStack.getItem()) && !hasAteRecently(piglinEntity) && !piglinEntity.isAggressive();
+    public static boolean hasConsumableOffhandItem(AbstractPiglinEntity piglinEntity) {
+        ItemStack offhandStack = piglinEntity.getHeldItemOffhand();
+        return isPiglinFoodItem(offhandStack.getItem()) // this accounts for piglin foods
+                || offhandStack.getUseAction() == UseAction.DRINK; // this accounts for honey bottles, milk buckets, and potions
     }
 
-    private static void setAdmiringItem(LivingEntity livingEntity) {
+    public static void setAdmiringItem(LivingEntity livingEntity) {
         livingEntity.getBrain().replaceMemory(MemoryModuleType.ADMIRING_ITEM, true, 120L);
     }
 
@@ -244,77 +240,94 @@ public class PiglinTasksHelper {
         return piglinEntity.getBrain().hasMemory(MemoryModuleType.ADMIRING_ITEM);
     }
 
+    public static boolean isNormalBarterItem(Item item){
+        return item.isIn(Tags.Items.INGOTS_GOLD);
+    }
+
+    public static boolean isBarterItem(Item item) {
+        return isNormalBarterItem(item)|| isAlternativeGreedItem(item);
+    }
+
+    private static boolean isAlternativeGreedItem(Item item) {
+        return isExpensiveBarterItem(item) || isCheapBarterItem(item);
+    }
+
     private static ActionResultType processInteractionForFoodItem(AbstractPiglinEntity piglinEntity, PlayerEntity playerEntity, Hand hand) {
         ItemStack itemstack = playerEntity.getHeldItem(hand);
-        if (canTakeFoodItem(piglinEntity, itemstack)) {
+        if (canAcceptFoodItem(piglinEntity, itemstack)) {
             ItemStack foodStack = itemstack.split(1);
-            addToFoodInventoryThenDropRemainder(piglinEntity, foodStack);
-            setAteRecently(piglinEntity);
-            //PiglinTasksHelper.dropOffhandItemAndSetItemStackToOffhand(piglinEntity, foodStack);
-            //PiglinTasksHelper.setAdmiringItem(piglinEntity);
-            //PiglinTasksHelper.clearWalkPath(piglinEntity);
+            //addToFoodInventoryThenDropRemainder(piglinEntity, foodStack);
+            //setAteRecently(piglinEntity);
+            PiglinTasksHelper.dropOffhandItemAndSetItemStackToOffhand(piglinEntity, foodStack);
+            PiglinTasksHelper.setAdmiringItem(piglinEntity);
+            PiglinTasksHelper.clearWalkPath(piglinEntity);
+
+            // REPUTATION
+            ReputationHelper.setPreviousInteractor(piglinEntity, playerEntity);
             return ActionResultType.CONSUME;
         } else {
             return ActionResultType.PASS;
         }
-    }
-
-    public static boolean isPiglinCurrency(Item item){
-        return item.isIn(Tags.Items.INGOTS_GOLD);
-    }
-
-    public static boolean isPiglinGreedItem(Item item) {
-        return isPiglinCurrency(item)|| isPiglinCurrencyRelated(item);
-    }
-
-    public static boolean isPiglinCurrencyRelated(Item item) {
-        return isBlockBarterGreedItem(item) || isNuggetBarterGreedItem(item);
     }
 
 
     private static ActionResultType processInteractionForPiglinGreedItem(AbstractPiglinEntity piglinEntity, PlayerEntity playerEntity, Hand handIn) {
         ItemStack itemstack = playerEntity.getHeldItem(handIn);
-        if (canTakePiglinGreedItem(piglinEntity, itemstack)) {
+        if (canAcceptPiglinGreedItem(piglinEntity, itemstack)) {
             ItemStack greedStack = itemstack.split(1);
             PiglinTasksHelper.dropOffhandItemAndSetItemStackToOffhand(piglinEntity, greedStack);
             PiglinTasksHelper.setAdmiringItem(piglinEntity);
             PiglinTasksHelper.clearWalkPath(piglinEntity);
+
+            // REPUTATION
+            ReputationHelper.setPreviousInteractor(piglinEntity, playerEntity);
             return ActionResultType.CONSUME;
         } else {
             return ActionResultType.PASS;
         }
-    }
-
-
-
-    protected static boolean isNotAdmiringItem(AbstractPiglinEntity piglinEntity) {
-        return !hasAdmiringDisabled(piglinEntity) && !hasAdmiringItem(piglinEntity);
     }
 
 
     private static ActionResultType processInteractionForPiglinLovedItem(AbstractPiglinEntity piglinEntity, PlayerEntity playerEntity, Hand handIn) {
         ItemStack itemstack = playerEntity.getHeldItem(handIn);
-        if (canTakePiglinLovedItem(piglinEntity, itemstack)) {
+        if (canAcceptPiglinLovedItem(piglinEntity, itemstack)) {
             ItemStack greedStack = itemstack.split(1);
             PiglinTasksHelper.dropOffhandItemAndSetItemStackToOffhand(piglinEntity, greedStack);
             PiglinTasksHelper.setAdmiringItem(piglinEntity);
             PiglinTasksHelper.clearWalkPath(piglinEntity);
+
+            // REPUTATION
+            ReputationHelper.setPreviousInteractor(piglinEntity, playerEntity);
             return ActionResultType.CONSUME;
         } else {
             return ActionResultType.PASS;
         }
     }
 
-    private static boolean canTakePiglinGreedItem(AbstractPiglinEntity piglinEntity, ItemStack itemStack) {
+    private static boolean canAcceptPiglinGreedItem(AbstractPiglinEntity piglinEntity, ItemStack itemStack) {
         return !hasAdmiringDisabled(piglinEntity)
                 && !hasAdmiringItem(piglinEntity)
-                && (isPiglinCurrencyRelated(itemStack.getItem()) || isPiglinCurrency(itemStack.getItem()) && piglinEntity.isChild());
+
+                && (isAlternativeGreedItem(itemStack.getItem()) // a specific check for baby piglins to be able to accept piglin currency
+                || isNormalBarterItem(itemStack.getItem()) && piglinEntity.isChild())
+
+                && !hasConsumableOffhandItem(piglinEntity);
     }
 
-    private static boolean canTakePiglinLovedItem(AbstractPiglinEntity piglinEntity, ItemStack itemStack) {
+    private static boolean canAcceptPiglinLovedItem(AbstractPiglinEntity piglinEntity, ItemStack itemStack) {
         return !hasAdmiringDisabled(piglinEntity)
                 && !hasAdmiringItem(piglinEntity)
-                && isPiglinLoved(itemStack.getItem());
+                && isPiglinLoved(itemStack.getItem())
+                && !hasConsumableOffhandItem(piglinEntity);
+    }
+
+    private static boolean canAcceptFoodItem(AbstractPiglinEntity piglinEntity, ItemStack itemStack) {
+        return !hasAdmiringDisabled(piglinEntity)
+                && !hasAdmiringItem(piglinEntity)
+                && isPiglinFoodItem(itemStack.getItem())
+                && !hasAteRecently(piglinEntity)
+                && !piglinEntity.isAggressive()
+                && !hasConsumableOffhandItem(piglinEntity);
     }
 
     public static ActionResultType getAgeableActionResultType(AbstractPiglinEntity piglinEntity, PlayerEntity playerEntity, Hand handIn, ActionResultType actionResultTypeIn) {
@@ -324,8 +337,8 @@ public class PiglinTasksHelper {
                 actionResultTypeIn = processInteractionForFoodItem(piglinEntity, playerEntity, handIn);
             }
             else{
-                boolean canTakeFoodItem = canTakeFoodItem(piglinEntity, itemStack)  && piglinEntity.func_234424_eM_() != PiglinAction.ADMIRING_ITEM;
-                actionResultTypeIn = canTakeFoodItem ? ActionResultType.SUCCESS : ActionResultType.PASS;
+                boolean canAcceptFoodItem = canAcceptFoodItem(piglinEntity, itemStack)  && piglinEntity.func_234424_eM_() != PiglinAction.ADMIRING_ITEM;
+                actionResultTypeIn = canAcceptFoodItem ? ActionResultType.SUCCESS : ActionResultType.PASS;
             }
         }
         return actionResultTypeIn;
@@ -333,12 +346,12 @@ public class PiglinTasksHelper {
 
     public static ActionResultType getGreedActionResultType(AbstractPiglinEntity piglinEntity, PlayerEntity playerEntity, Hand handIn, ActionResultType actionResultTypeIn) {
         ItemStack itemStack = playerEntity.getHeldItem(handIn);
-        if(isPiglinGreedItem(itemStack.getItem())){
+        if(isBarterItem(itemStack.getItem())){
             if(!piglinEntity.world.isRemote){
                 actionResultTypeIn = processInteractionForPiglinGreedItem(piglinEntity, playerEntity, handIn);
             }
             else{
-                boolean canTakeGreedItem = canTakePiglinGreedItem(piglinEntity, itemStack)  && piglinEntity.func_234424_eM_() != PiglinAction.ADMIRING_ITEM;
+                boolean canTakeGreedItem = canAcceptPiglinGreedItem(piglinEntity, itemStack)  && piglinEntity.func_234424_eM_() != PiglinAction.ADMIRING_ITEM;
                 actionResultTypeIn = canTakeGreedItem ? ActionResultType.SUCCESS : ActionResultType.PASS;
             }
         }
@@ -347,7 +360,7 @@ public class PiglinTasksHelper {
                 actionResultTypeIn = processInteractionForPiglinLovedItem(piglinEntity, playerEntity, handIn);
             }
             else{
-                boolean canTakeLovedItem = canTakePiglinLovedItem(piglinEntity, itemStack)  && piglinEntity.func_234424_eM_() != PiglinAction.ADMIRING_ITEM;
+                boolean canTakeLovedItem = canAcceptPiglinLovedItem(piglinEntity, itemStack)  && piglinEntity.func_234424_eM_() != PiglinAction.ADMIRING_ITEM;
                 actionResultTypeIn = canTakeLovedItem ? ActionResultType.SUCCESS : ActionResultType.PASS;
             }
         }
@@ -371,11 +384,11 @@ public class PiglinTasksHelper {
         return Collections.emptyList();
     }
 
-    public static boolean isBlockBarterGreedItem(Item item) {
+    public static boolean isExpensiveBarterItem(Item item) {
         return item.isIn(Tags.Items.STORAGE_BLOCKS_GOLD);
     }
 
-    public static boolean isNuggetBarterGreedItem(Item item) {
+    public static boolean isCheapBarterItem(Item item) {
         return item.isIn(Tags.Items.NUGGETS_GOLD);
     }
 
@@ -396,10 +409,6 @@ public class PiglinTasksHelper {
 
     }
 
-    private static boolean hasNearestVisiblePlayer(AbstractPiglinEntity piglinEntity) {
-        return piglinEntity.getBrain().hasMemory(MemoryModuleType.NEAREST_VISIBLE_PLAYER);
-    }
-
     private static Optional<PlayerEntity> getNearestVisiblePlayer(AbstractPiglinEntity piglinEntity) {
         return piglinEntity.getBrain().getMemory(MemoryModuleType.NEAREST_VISIBLE_PLAYER);
     }
@@ -417,8 +426,7 @@ public class PiglinTasksHelper {
         return BrainUtil.getTargetFromMemory(piglinEntity, MemoryModuleType.ANGRY_AT);
     }
 
-    private static boolean isAngerTarget(AbstractPiglinEntity piglinEntity, LivingEntity livingEntity){
-        Optional<LivingEntity> angerTargetFromMemory = getAngerTargetFromMemory(piglinEntity);
-        return angerTargetFromMemory.isPresent() && angerTargetFromMemory.get() == livingEntity;
+    public static boolean hasIdle(AbstractPiglinEntity piglinEntity) {
+        return piglinEntity.getBrain().hasActivity(Activity.IDLE);
     }
 }

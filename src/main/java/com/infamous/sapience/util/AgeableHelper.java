@@ -14,15 +14,12 @@ import javax.annotation.Nullable;
 
 public class AgeableHelper {
 
-    public static final int BIRTH_AGE = -24000;
-    public static final int BREEDING_COOLDOWN = 6000;
+    private static final int BIRTH_AGE = -24000;
+    private static final int BREEDING_COOLDOWN = 6000;
     public static final int BREEDING_ID = 12;
     //public static final int FINISHED_BREEDING_ID = 13;
     public static final int GROWING_ID = 14;
     //public static final int FINISHED_GROWING_ID = 15;
-    public static final int ANGER_ID = 16;
-    public static final int DECLINE_ID = 6;
-    public static final int ACCEPT_ID = 8;
 
     @Nullable
     public static IAgeable getAgeableCapability(Entity entity)
@@ -31,32 +28,23 @@ public class AgeableHelper {
         if (lazyCap.isPresent()) {
             return lazyCap.orElseThrow(() -> new IllegalStateException("Couldn't get the ageable capability from the Entity!"));
         }
-        Sapience.LOGGER.error("Couldn't get the ageable capability from the Entity in AgeableHelper#getAgeableCapability!");
+        Sapience.LOGGER.error("Couldn't get the ageable capability from " + entity.toString() + "in AgeableHelper#getAgeableCapability!");
         return null;
     }
 
-    public static boolean canAddItemStackToFoodInventory(MobEntity mobEntity, ItemStack itemStack) {
-        IAgeable ageable = getAgeableCapability(mobEntity);
-        if(ageable != null){
-            return ageable.getFoodInventory().func_233541_b_(itemStack);
-        }
-        Sapience.LOGGER.error("Couldn't get the ageable capability from the MobEntity in AgeableHelper#canAddItemStackToFoodInventory!");
-        return false;
+    public static void depleteParentsFoodValue(MobEntity parent, MobEntity partner) {
+        depleteFoodValue(parent);
+        depleteFoodValue(partner);
     }
 
-    public static void depleteParentsFoodReserves(MobEntity parent, MobEntity partner) {
-        depleteFoodReserves(parent);
-        depleteFoodReserves(partner);
-    }
-
-    public static void depleteFoodReserves(MobEntity parent) {
+    private static void depleteFoodValue(MobEntity parent) {
         IAgeable parentAging = AgeableHelper.getAgeableCapability(parent);
         if (parentAging != null) {
-            parentAging.depleteFoodReserves();
+            parentAging.depleteFoodValue();
         }
     }
 
-    public static boolean canBreed(MobEntity parent){
+    static boolean canBreed(MobEntity parent){
         IAgeable parentAging = AgeableHelper.getAgeableCapability(parent);
         return parentAging != null && parentAging.canBreed();
     }
@@ -70,10 +58,17 @@ public class AgeableHelper {
         setParentOnBreedCooldown(partner);
     }
 
-    public static void setParentOnBreedCooldown(MobEntity parent) {
+    private static void setParentOnBreedCooldown(MobEntity parent) {
         IAgeable parentAging = AgeableHelper.getAgeableCapability(parent);
         if (parentAging != null) {
             parentAging.setGrowingAge(BREEDING_COOLDOWN);
+        }
+    }
+
+    public static void increaseFoodLevel(MobEntity mobEntity, int foodValueIn) {
+        IAgeable ageable = AgeableHelper.getAgeableCapability(mobEntity);
+        if (ageable != null) {
+            ageable.increaseFoodLevel(foodValueIn);
         }
     }
 
@@ -111,6 +106,7 @@ public class AgeableHelper {
     }
 
     public static void initializeChild(MobEntity child) {
+        //Sapience.LOGGER.info("Initializing child entity: " + child.toString());
         IAgeable childAgeable = AgeableHelper.getAgeableCapability(child);
         if(childAgeable != null && !childAgeable.wasBorn()){
             childAgeable.setGrowingAge(BIRTH_AGE);
@@ -137,17 +133,9 @@ public class AgeableHelper {
     public static void updateSelfAge(MobEntity mobEntity) {
         IAgeable ageable = getAgeableCapability(mobEntity);
         if (ageable != null && ageable.canSelfAge()) {
-            ageable.depleteFoodReserves();
+            ageable.depleteFoodValue();
             //mobEntity.world.setEntityState(mobEntity, (byte) CapabilityHelper.FINISHED_GROWING_ID);
             ageable.ageUp((int) ((float) (-ageable.getGrowingAge() / 20) * 0.1F), true);
-        }
-    }
-
-    public static void dropAllFoodItems(MobEntity mobEntity) {
-        IAgeable ageable = getAgeableCapability(mobEntity);
-        if (ageable != null) {
-            Inventory foodInventory = ageable.getFoodInventory();
-            foodInventory.func_233543_f_().forEach(mobEntity::entityDropItem);
         }
     }
 }

@@ -30,61 +30,11 @@ public interface IAgeable {
 
     void onGrowingAdult();
 
-    // BREEDING METHODS //
-
-    Inventory getFoodInventory();
-
-    Map<Item, Integer> getFoodValues();
-
     byte getFoodLevel();
 
     void setFoodLevel(byte foodLevel);
 
-    boolean isHungry();
-
-    void depleteFoodReserves();
-
-    /**
-     * @return calculated food value from item stacks in this villager's inventory
-     */
-    default int getFoodValueFromInventory() {
-        Inventory inventory = this.getFoodInventory();
-        return this.getFoodValues().entrySet().stream().mapToInt(
-                (foodValueEntry) -> inventory.count(foodValueEntry.getKey()) * foodValueEntry.getValue()).sum();
-    }
-
-    default void eat() {
-        if (this.isHungry() && this.getFoodValueFromInventory() != 0) {
-            for(int i = 0; i < this.getFoodInventory().getSizeInventory(); ++i) {
-                ItemStack itemstack = this.getFoodInventory().getStackInSlot(i);
-                if (!itemstack.isEmpty()) {
-                    Integer integer = this.getFoodValues().get(itemstack.getItem());
-                    if (integer != null) {
-                        int j = itemstack.getCount();
-
-                        for(int k = j; k > 0; --k) {
-                            this.setFoodLevel((byte)(this.getFoodLevel() + integer));
-                            this.getFoodInventory().decrStackSize(i, 1);
-                            if (!this.isHungry()) {
-                                return;
-                            }
-                        }
-                    }
-                }
-            }
-
-        }
-    }
-
-    default boolean replaceItemInFoodInventory(int inventorySlot, ItemStack itemStackIn) {
-        int i = inventorySlot - 300;
-        if (i >= 0 && i < this.getFoodInventory().getSizeInventory()) {
-            this.getFoodInventory().setInventorySlotContents(i, itemStackIn);
-            return true;
-        } else {
-            return false;
-        }
-    }
+    void depleteFoodValue();
 
     boolean canBreed();
 
@@ -92,6 +42,10 @@ public interface IAgeable {
 
     default void decreaseFoodLevel(int qty) {
         this.setFoodLevel((byte)(this.getFoodLevel() - qty));
+    }
+
+    default void increaseFoodLevel(int qty){
+        this.setFoodLevel((byte)(this.getFoodLevel() + qty));
     }
 
 }

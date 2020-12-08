@@ -16,7 +16,7 @@ public class AgeableStorage implements Capability.IStorage<IAgeable> {
         tag.putInt("Age", instance.getGrowingAge());
         tag.putInt("ForcedAge", instance.getForcedAge());
         tag.putBoolean("WasBorn", instance.wasBorn());
-        tag.put("FoodInventory", instance.getFoodInventory().write());
+        //tag.put("FoodInventory", instance.getFoodInventory().write());
         tag.putByte("FoodLevel", instance.getFoodLevel());
         //tag.putInt("InLove", instance.getInLove());
         return tag;
@@ -28,7 +28,7 @@ public class AgeableStorage implements Capability.IStorage<IAgeable> {
         instance.setGrowingAge(tag.getInt("Age"));
         instance.setForcedAge(tag.getInt("ForcedAge"));
         instance.setBorn(tag.getBoolean("WasBorn"));
-        instance.getFoodInventory().read(tag.getList("FoodInventory", 10));
+        //instance.getFoodInventory().read(tag.getList("FoodInventory", 10));
         instance.setFoodLevel(tag.getByte("FoodLevel"));
         //instance.setInLove(tag.getInt("InLove"));
     }

@@ -22,7 +22,7 @@ public class AdmireItemTaskMixin {
         if(wantedItemEntity.isPresent()){
             ItemEntity itementity = wantedItemEntity.get();
             boolean piglinLoved = PiglinTasksHelper.isPiglinLoved(itementity.getItem().getItem());
-            boolean piglinGreed = PiglinTasksHelper.isPiglinGreedItem(itementity.getItem().getItem());
+            boolean piglinGreed = PiglinTasksHelper.isBarterItem(itementity.getItem().getItem());
             boolean piglinFood = PiglinTasksHelper.isPiglinFoodItem(itementity.getItem().getItem());
             boolean isAdmirable = piglinLoved || piglinFood || piglinGreed;
             callbackInfoReturnable.setReturnValue(isAdmirable);

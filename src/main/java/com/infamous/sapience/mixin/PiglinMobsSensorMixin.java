@@ -2,6 +2,7 @@ package com.infamous.sapience.mixin;
 
 import com.google.common.collect.ImmutableList;
 import com.infamous.sapience.mod.ModMemoryModuleTypes;
+import com.infamous.sapience.util.ReputationHelper;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.ai.brain.Brain;
 import net.minecraft.entity.ai.brain.memory.MemoryModuleType;
@@ -11,6 +12,7 @@ import net.minecraft.world.server.ServerWorld;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.Optional;
@@ -18,7 +20,7 @@ import java.util.Optional;
 @Mixin(PiglinMobsSensor.class)
 public class PiglinMobsSensorMixin {
 
-    @Inject(at = @At("HEAD"), method = "update")
+    @Inject(at = @At("HEAD"), method = "update", cancellable = true)
     private void update(ServerWorld serverWorld, LivingEntity entityIn, CallbackInfo callbackInfo){
         Brain<?> brain = entityIn.getBrain();
         Optional<HoglinEntity> optionalNearestVisibleAdultHoglin = Optional.empty();
@@ -33,6 +35,13 @@ public class PiglinMobsSensorMixin {
         }
 
         brain.setMemory(ModMemoryModuleTypes.NEAREST_VISIBLE_ADULT_HOGLIN.get(), optionalNearestVisibleAdultHoglin);
+    }
+
+
+
+    @Redirect(at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/monster/piglin/PiglinTasks;func_234460_a_(Lnet/minecraft/entity/LivingEntity;)Z"), method = "update")
+    private boolean piglinsAreNeutralTo(LivingEntity livingEntity, ServerWorld serverWorld, LivingEntity sensorEntity){
+        return ReputationHelper.hasAcceptableAttire(livingEntity, sensorEntity);
     }
 
 }

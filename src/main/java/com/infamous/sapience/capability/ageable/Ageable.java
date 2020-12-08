@@ -1,11 +1,6 @@
 package com.infamous.sapience.capability.ageable;
 
 import com.infamous.sapience.SapienceConfig;
-import com.infamous.sapience.mod.FoodValues;
-import net.minecraft.inventory.Inventory;
-import net.minecraft.item.Item;
-
-import java.util.Map;
 
 public class Ageable implements IAgeable {
 
@@ -16,14 +11,13 @@ public class Ageable implements IAgeable {
     private int forcedAge;
     private int forcedAgeTimer;
     private byte foodLevel;
-    private final Inventory foodInventory = new Inventory(8);
 
     public Ageable(){
     }
 
     @Override
     public boolean wasBorn() {
-        return false;
+        return this.wasBorn;
     }
 
     @Override
@@ -129,16 +123,6 @@ public class Ageable implements IAgeable {
     // BREEDING METHODS //
 
     @Override
-    public Inventory getFoodInventory() {
-        return this.foodInventory;
-    }
-
-    @Override
-    public Map<Item, Integer> getFoodValues() {
-        return FoodValues.FOOD_VALUES;
-    }
-
-    @Override
     public byte getFoodLevel() {
         return this.foodLevel;
     }
@@ -149,23 +133,24 @@ public class Ageable implements IAgeable {
     }
 
     @Override
-    public boolean isHungry() {
-        return this.getFoodLevel() < MIN_FOOD_LEVEL_FOR_BREEDING;
-    }
-
-    @Override
-    public void depleteFoodReserves() {
-        this.eat();
+    public void depleteFoodValue() {
+        //this.eat();
         this.decreaseFoodLevel(MIN_FOOD_LEVEL_FOR_BREEDING);
     }
 
     @Override
     public boolean canBreed() {
-        return this.getFoodLevel() + this.getFoodValueFromInventory() >= MIN_FOOD_LEVEL_FOR_BREEDING && this.getGrowingAge() == 0;
+        return this.getFoodLevel()
+                //+ this.getFoodValueFromInventory()
+                >= MIN_FOOD_LEVEL_FOR_BREEDING
+                && this.getGrowingAge() == 0;
     }
 
     @Override
     public boolean canSelfAge() {
-        return this.getFoodLevel() + this.getFoodValueFromInventory() >= MIN_FOOD_LEVEL_FOR_BREEDING && this.getGrowingAge() < 0;
+        return this.getFoodLevel()
+                //+ this.getFoodValueFromInventory()
+                >= MIN_FOOD_LEVEL_FOR_BREEDING
+                && this.getGrowingAge() < 0;
     }
 }

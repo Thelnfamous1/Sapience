@@ -70,9 +70,7 @@ public class CreateBabyTask<T extends MobEntity> extends Task<T> {
                 BrainUtil.lookApproachEachOther(owner, breedTarget, 0.5F);
                 if (gameTime >= this.duration) {
                     // CAPABILITY
-                    AgeableHelper.depleteParentsFoodReserves(owner, breedTarget);
-                    //worldIn.setEntityState(owner, (byte)CapabilityHelper.FINISHED_BREEDING_ID);
-                    //worldIn.setEntityState(breedTarget, (byte)CapabilityHelper.FINISHED_BREEDING_ID);
+                    AgeableHelper.depleteParentsFoodValue(owner, breedTarget);
                     this.createChild(worldIn, owner, breedTarget);
                 } else if(owner.getRNG().nextInt(35) == 0){
                     worldIn.setEntityState(breedTarget, (byte) AgeableHelper.BREEDING_ID);
