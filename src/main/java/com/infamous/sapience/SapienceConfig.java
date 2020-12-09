@@ -6,6 +6,8 @@ import org.apache.commons.lang3.tuple.Pair;
 public class SapienceConfig {
 
     public static class Common {
+        public final ForgeConfigSpec.ConfigValue<Boolean> REQUIRE_LIVING_FOR_BARTER;
+
         public final ForgeConfigSpec.ConfigValue<Integer> MIN_FOOD_VALUE_FOR_BREEDING;
 
         public final ForgeConfigSpec.ConfigValue<Boolean> PIGLINS_PREFER_CRAFTED_EQUIPMENT;
@@ -40,6 +42,13 @@ public class SapienceConfig {
 
 
         public Common(ForgeConfigSpec.Builder builder){
+
+            builder.comment("General Configuration").push("general_configuration");
+
+            REQUIRE_LIVING_FOR_BARTER = builder.comment("Determines whether or not Piglins can only give bartering loot if the received bartering item came from a living being [true/false, default:true]")
+                    .define("requireLivingForBarter", true);
+
+            builder.pop();
 
             builder.comment("Ageable Configuration").push("ageable_configuration");
 

@@ -1,5 +1,6 @@
 package com.infamous.sapience.mixin;
 
+import com.infamous.sapience.SapienceConfig;
 import com.infamous.sapience.capability.ageable.IAgeable;
 import com.infamous.sapience.util.PiglinReputationType;
 import com.infamous.sapience.util.*;
@@ -91,8 +92,9 @@ public class PiglinTasksMixin {
     private static void finishAdmiringItem(PiglinEntity piglinEntity, boolean doBarter, CallbackInfo callbackInfo){
 
         Entity interactorEntity = ReputationHelper.getPreviousInteractor(piglinEntity);
-        boolean deservesBarter = interactorEntity instanceof LivingEntity
-                && ReputationHelper.isAllowedToBarter(piglinEntity, (LivingEntity) interactorEntity);
+        boolean willDropLoot =
+                interactorEntity instanceof LivingEntity && ReputationHelper.isAllowedToBarter(piglinEntity, (LivingEntity) interactorEntity)
+                || interactorEntity == null && !SapienceConfig.COMMON.REQUIRE_LIVING_FOR_BARTER.get();
 
         ItemStack offhandStack = piglinEntity.getHeldItem(Hand.OFF_HAND);
 
@@ -102,14 +104,14 @@ public class PiglinTasksMixin {
         }
 
         if (!piglinEntity.isChild()) { // isAdult
-            if(PiglinTasksHelper.isExpensiveBarterItem(offhandStack.getItem()) && doBarter && deservesBarter){
+            if(PiglinTasksHelper.isExpensiveBarterItem(offhandStack.getItem()) && doBarter && willDropLoot){
                 PiglinTasksHelper.dropBlockBarteringLoot(piglinEntity);
                 CompoundNBT compoundNBT = offhandStack.getOrCreateTag();
                 compoundNBT.putBoolean(GreedHelper.BARTERED, true);
 
                 ReputationHelper.updatePreviousInteractorReputation(piglinEntity, PiglinReputationType.BARTER);
             }
-            else if(PiglinTasksHelper.isCheapBarterItem(offhandStack.getItem()) && doBarter && deservesBarter){
+            else if(PiglinTasksHelper.isCheapBarterItem(offhandStack.getItem()) && doBarter && willDropLoot){
                 PiglinTasksHelper.dropNuggetBarteringLoot(piglinEntity);
                 CompoundNBT compoundNBT = offhandStack.getOrCreateTag();
                 compoundNBT.putBoolean(GreedHelper.BARTERED, true);
@@ -136,10 +138,11 @@ public class PiglinTasksMixin {
         if(doBarter){
             ReputationHelper.updatePreviousInteractorReputation(piglinEntity, PiglinReputationType.BARTER);
         }
-        boolean deservesBarter = interactorEntity instanceof LivingEntity
-                && ReputationHelper.isAllowedToBarter(piglinEntity, (LivingEntity) interactorEntity);
+        boolean willDropLoot =
+                interactorEntity instanceof LivingEntity && ReputationHelper.isAllowedToBarter(piglinEntity, (LivingEntity) interactorEntity)
+                || interactorEntity == null && !SapienceConfig.COMMON.REQUIRE_LIVING_FOR_BARTER.get();
 
-        if(!deservesBarter){
+        if(!willDropLoot){
             callbackInfo.cancel();
         }
     }
