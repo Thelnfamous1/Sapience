@@ -3,7 +3,7 @@ buildscript {
         maven { url = 'https://files.minecraftforge.net/maven' }
         jcenter()
         mavenCentral()
-        maven { url = 'https://dist.creeper.host/Sponge/maven' }
+        maven { url = 'https://repo.spongepowered.org/repository/maven-public' }
     }
     dependencies {
         classpath group: 'net.minecraftforge.gradle', name: 'ForgeGradle', version: '3.+', changing: true
@@ -20,9 +20,9 @@ mixin {
     add sourceSets.main, "sapience.refmap.json"
 }
 
-version = '1.1.1'
+version = '1.1.2'
 group = 'com.infamous.sapience' // http://maven.apache.org/guides/mini/guide-naming-conventions.html
-archivesBaseName = 'sapience-1.16.4'
+archivesBaseName = 'sapience-1.16.5'
 
 sourceCompatibility = targetCompatibility = compileJava.sourceCompatibility = compileJava.targetCompatibility = '1.8' // Need this here so eclipse task generates correctly.
 

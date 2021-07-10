@@ -19,4 +19,12 @@ public class GeneralHelper {
             livingEntity.world.addParticle(particleData, livingEntity.getPosXRandom(1.0D), livingEntity.getPosYRandom() + 1.0D, livingEntity.getPosZRandom(1.0D), randomXSpeed, randomYSpeed, randomZSpeed);
         }
     }
+
+    public static boolean isNotOnSameTeam(LivingEntity entityIn, LivingEntity livingentity) {
+        return !isOnSameTeam(entityIn, livingentity);
+    }
+
+    public static boolean isOnSameTeam(LivingEntity entityIn, LivingEntity livingentity) {
+        return entityIn.isOnSameTeam(livingentity);
+    }
 }

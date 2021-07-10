@@ -5,8 +5,11 @@ import com.infamous.sapience.capability.ageable.IAgeable;
 import com.infamous.sapience.util.PiglinReputationType;
 import com.infamous.sapience.util.*;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityType;
 import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.ai.brain.Brain;
 import net.minecraft.entity.ai.brain.BrainUtil;
+import net.minecraft.entity.ai.brain.memory.MemoryModuleType;
 import net.minecraft.entity.ai.brain.task.FirstShuffledTask;
 import net.minecraft.entity.item.ItemEntity;
 import net.minecraft.entity.monster.piglin.AbstractPiglinEntity;
@@ -22,6 +25,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
+import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
@@ -30,6 +34,23 @@ import java.util.stream.Collectors;
 
 @Mixin(PiglinTasks.class)
 public class PiglinTasksMixin {
+
+    @Inject(at = @At("HEAD"), method = "func_234468_a_", cancellable = true)
+    private static void wasHurtBy(PiglinEntity piglin, LivingEntity attacker, CallbackInfo ci){
+        if(GeneralHelper.isOnSameTeam(piglin, attacker)){
+            ci.cancel();
+        }
+    }
+
+    @Redirect(at = @At(value = "INVOKE",
+            target = "Lnet/minecraft/entity/monster/piglin/PiglinTasks;func_234459_a_(Lnet/minecraft/entity/EntityType;)Z"),
+            method = "func_234533_t_")
+    private static boolean shouldAvoidZombified(EntityType entityType, PiglinEntity piglin){
+        Brain<PiglinEntity> brain = piglin.getBrain();
+        LivingEntity livingentity = brain.getMemory(MemoryModuleType.AVOID_TARGET).get();
+        return PiglinTasksHelper.isZombified(livingentity)
+                && GeneralHelper.isNotOnSameTeam(piglin, livingentity);
+    }
 
     @Inject(at = @At("RETURN"), method = "func_234481_b_", cancellable = true)
     private static void getLookTasks(CallbackInfoReturnable<FirstShuffledTask<PiglinEntity>> callbackInfoReturnable){

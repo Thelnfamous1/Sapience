@@ -5,14 +5,19 @@
   "minVersion": "0.8",
   "refmap": "sapience.refmap.json",
   "mixins": [
-    "PiglinTasksMixin",
-    "PiglinEntityMixin",
     "AdmireItemTaskMixin",
-    "HoglinTasksMixin",
-    "HoglinEntityMixin",
     "AnimalBreedTaskMixin",
+    "GetAngryTaskMixin",
+    "HoglinEntityMixin",
+    "HoglinTasksMixin",
+    "NearestPlayersSensorMixin",
+    "PiglinBruteBrainMixin",
+    "PiglinBruteSpecificSensorMixin",
+    "PiglinEntityMixin",
     "PiglinMobsSensorMixin",
-    "StartAdmiringItemTaskMixin"
+    "PiglinTasksMixin",
+    "StartAdmiringItemTaskMixin",
+    "ZoglinEntityMixin"
   ],
   "client": [
     "PiglinModelMixin"

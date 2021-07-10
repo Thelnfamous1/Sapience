@@ -65,7 +65,7 @@ public abstract class PiglinModelMixin extends PlayerModel {
         boolean drinkingoreating = itemstack.getUseAction() == UseAction.EAT || itemstack.getUseAction() == UseAction.DRINK;
         if (entity.getItemInUseCount() > 0 && drinkingoreating && entity.getActiveHand() == hand)
         {
-            this.bipedRightArm.copyModelAngles(field_241658_A_); // reset bipedRightArm
+            this.bipedLeftArm.copyModelAngles(this.field_241658_A_); // reset bipedRightArm
             this.bipedRightArm.rotateAngleY = -0.5F;
             this.bipedRightArm.rotateAngleX = -1.3F;
             this.bipedRightArm.rotateAngleZ = MathHelper.cos(ageInTicks) * 0.1F;
@@ -79,7 +79,7 @@ public abstract class PiglinModelMixin extends PlayerModel {
         boolean drinkingoreating = itemstack.getUseAction() == UseAction.EAT || itemstack.getUseAction() == UseAction.DRINK;
         if (entity.getItemInUseCount() > 0 && drinkingoreating && entity.getActiveHand() == hand)
         {
-            this.bipedLeftArm.copyModelAngles(field_241659_B_); // reset bipedLeftArm
+            this.bipedRightArm.copyModelAngles(this.field_241659_B_); // reset bipedLeftArm
             this.bipedLeftArm.rotateAngleY = 0.5F;
             this.bipedLeftArm.rotateAngleX = -1.3F;
             this.bipedLeftArm.rotateAngleZ = MathHelper.cos(ageInTicks) * 0.1F;

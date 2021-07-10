@@ -16,6 +16,8 @@ import net.minecraft.entity.ai.brain.memory.MemoryModuleType;
 import net.minecraft.entity.ai.brain.schedule.Activity;
 import net.minecraft.entity.ai.brain.task.*;
 import net.minecraft.entity.item.ItemEntity;
+import net.minecraft.entity.monster.ZoglinEntity;
+import net.minecraft.entity.monster.ZombifiedPiglinEntity;
 import net.minecraft.entity.monster.piglin.AbstractPiglinEntity;
 import net.minecraft.entity.monster.piglin.PiglinAction;
 import net.minecraft.entity.monster.piglin.PiglinEntity;
@@ -428,5 +430,9 @@ public class PiglinTasksHelper {
 
     public static boolean hasIdle(AbstractPiglinEntity piglinEntity) {
         return piglinEntity.getBrain().hasActivity(Activity.IDLE);
+    }
+
+    public static boolean isZombified(LivingEntity livingEntity) {
+        return livingEntity instanceof ZombifiedPiglinEntity || livingEntity instanceof ZoglinEntity;
     }
 }

@@ -201,7 +201,8 @@ public class ReputationHelper {
     }
 
     public static boolean isAllowedToTouchGold(PlayerEntity playerEntity, PiglinEntity nearbyPiglin) {
-        return getEntityReputation(nearbyPiglin, playerEntity) >= ALLY_REPUTATION;
+        return getEntityReputation(nearbyPiglin, playerEntity) >= ALLY_REPUTATION
+                || GeneralHelper.isOnSameTeam(nearbyPiglin, playerEntity);
     }
 
     public static boolean hasAcceptableAttire(LivingEntity livingEntity, LivingEntity sensorEntity) {
