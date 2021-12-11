@@ -5,67 +5,65 @@ import com.infamous.sapience.mod.ModMemoryModuleTypes;
 import com.infamous.sapience.util.GeneralHelper;
 import com.infamous.sapience.util.PiglinTasksHelper;
 import com.infamous.sapience.util.ReputationHelper;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.MobEntity;
-import net.minecraft.entity.ai.brain.Brain;
-import net.minecraft.entity.ai.brain.memory.MemoryModuleType;
-import net.minecraft.entity.ai.brain.sensor.PiglinMobsSensor;
-import net.minecraft.entity.boss.WitherEntity;
-import net.minecraft.entity.monster.HoglinEntity;
-import net.minecraft.entity.monster.WitherSkeletonEntity;
-import net.minecraft.entity.monster.piglin.PiglinTasks;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.util.EntityPredicates;
-import net.minecraft.world.server.ServerWorld;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.EntitySelector;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.ai.Brain;
+import net.minecraft.world.entity.ai.memory.MemoryModuleType;
+import net.minecraft.world.entity.ai.sensing.PiglinSpecificSensor;
+import net.minecraft.world.entity.boss.wither.WitherBoss;
+import net.minecraft.world.entity.monster.WitherSkeleton;
+import net.minecraft.world.entity.monster.hoglin.Hoglin;
+import net.minecraft.world.entity.player.Player;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.Optional;
 
-@Mixin(PiglinMobsSensor.class)
+@Mixin(PiglinSpecificSensor.class)
 public class PiglinMobsSensorMixin {
 
-    @Inject(at = @At("RETURN"), method = "update", cancellable = true)
-    private void update(ServerWorld serverWorld, LivingEntity entityIn, CallbackInfo callbackInfo){
+    @Inject(at = @At("RETURN"), method = "doTick", cancellable = true)
+    private void update(ServerLevel serverWorld, LivingEntity entityIn, CallbackInfo callbackInfo){
         Brain<?> brain = entityIn.getBrain();
 
-        Optional<MobEntity> optionalNemesis = Optional.empty();
-        Optional<HoglinEntity> optionalHuntableHoglin = Optional.empty();
-        Optional<PlayerEntity> optionalPlayerNotGilded = Optional.empty();
+        Optional<Mob> optionalNemesis = Optional.empty();
+        Optional<Hoglin> optionalHuntableHoglin = Optional.empty();
+        Optional<Player> optionalPlayerNotGilded = Optional.empty();
         Optional<LivingEntity> optionalZombified = Optional.empty();
 
-        Optional<HoglinEntity> optionalNearestVisibleAdultHoglin = Optional.empty();
+        Optional<Hoglin> optionalNearestVisibleAdultHoglin = Optional.empty();
 
-        for(LivingEntity livingentity : brain.getMemory(MemoryModuleType.VISIBLE_MOBS).orElse(ImmutableList.of())) {
-            if (livingentity instanceof HoglinEntity) {
-                HoglinEntity hoglinentity = (HoglinEntity) livingentity;
-                if (hoglinentity.func_234363_eJ_() && !optionalNearestVisibleAdultHoglin.isPresent()) {
+        for(LivingEntity livingentity : brain.getMemory(MemoryModuleType.VISIBLE_LIVING_ENTITIES).orElse(ImmutableList.of())) {
+            if (livingentity instanceof Hoglin) {
+                Hoglin hoglinentity = (Hoglin) livingentity;
+                if (hoglinentity.isAdult() && !optionalNearestVisibleAdultHoglin.isPresent()) {
                     optionalNearestVisibleAdultHoglin = Optional.of(hoglinentity);
                 }
                 if (!optionalHuntableHoglin.isPresent()
-                        && hoglinentity.func_234365_eM_()
+                        && hoglinentity.canBeHunted()
                         && GeneralHelper.isNotOnSameTeam(entityIn, hoglinentity)) {
                     optionalHuntableHoglin = Optional.of(hoglinentity);
                 }
-            } else if (livingentity instanceof PlayerEntity) {
-                PlayerEntity playerentity = (PlayerEntity)livingentity;
+            } else if (livingentity instanceof Player) {
+                Player playerentity = (Player)livingentity;
                 if (!optionalPlayerNotGilded.isPresent()
-                        && EntityPredicates.CAN_HOSTILE_AI_TARGET.test(livingentity)
+                        && EntitySelector.ATTACK_ALLOWED.test(livingentity)
                         && !ReputationHelper.hasAcceptableAttire(livingentity, entityIn)
                         && GeneralHelper.isNotOnSameTeam(entityIn, livingentity)) {
                     optionalPlayerNotGilded = Optional.of(playerentity);
                 }
-            }  else if (optionalNemesis.isPresent() || !(livingentity instanceof WitherSkeletonEntity) && !(livingentity instanceof WitherEntity)) {
+            }  else if (optionalNemesis.isPresent() || !(livingentity instanceof WitherSkeleton) && !(livingentity instanceof WitherBoss)) {
                 if (!optionalZombified.isPresent()
                         && PiglinTasksHelper.isZombified(livingentity)
                         && GeneralHelper.isNotOnSameTeam(entityIn, livingentity)) {
                     optionalZombified = Optional.of(livingentity);
                 }
             } else if(GeneralHelper.isNotOnSameTeam(entityIn, livingentity)){
-                optionalNemesis = Optional.of((MobEntity)livingentity);
+                optionalNemesis = Optional.of((Mob)livingentity);
             }
         }
         brain.setMemory(MemoryModuleType.NEAREST_VISIBLE_NEMESIS, optionalNemesis);

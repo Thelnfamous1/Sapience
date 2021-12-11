@@ -5,21 +5,21 @@ import com.infamous.sapience.SapienceConfig;
 import com.infamous.sapience.capability.reputation.IReputation;
 import com.infamous.sapience.capability.reputation.ReputationProvider;
 import com.mojang.serialization.Dynamic;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.MobEntity;
-import net.minecraft.entity.merchant.IReputationTracking;
-import net.minecraft.entity.merchant.IReputationType;
-import net.minecraft.entity.monster.piglin.AbstractPiglinEntity;
-import net.minecraft.entity.monster.piglin.PiglinEntity;
-import net.minecraft.entity.monster.piglin.PiglinTasks;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.nbt.INBT;
-import net.minecraft.nbt.NBTDynamicOps;
-import net.minecraft.util.math.AxisAlignedBB;
-import net.minecraft.village.GossipManager;
-import net.minecraft.village.GossipType;
-import net.minecraft.world.server.ServerWorld;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.ReputationEventHandler;
+import net.minecraft.world.entity.ai.village.ReputationEventType;
+import net.minecraft.world.entity.monster.piglin.AbstractPiglin;
+import net.minecraft.world.entity.monster.piglin.Piglin;
+import net.minecraft.world.entity.monster.piglin.PiglinAi;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.nbt.Tag;
+import net.minecraft.nbt.NbtOps;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.entity.ai.gossip.GossipContainer;
+import net.minecraft.world.entity.ai.gossip.GossipType;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraftforge.common.util.LazyOptional;
 
 import javax.annotation.Nullable;
@@ -45,100 +45,100 @@ public class ReputationHelper {
         return null;
     }
 
-    public static void updatePiglinReputation(AbstractPiglinEntity piglinEntity, IReputationType type, Entity target){
+    public static void updatePiglinReputation(AbstractPiglin piglinEntity, ReputationEventType type, Entity target){
         IReputation reputation = getReputationCapability(piglinEntity);
         if(reputation != null){
-            GossipManager gossipManager = reputation.getGossipManager();
+            GossipContainer gossipManager = reputation.getGossipManager();
 
             // Extremely major positive events - slaying the Wither
             if (type == PiglinReputationType.WITHER_KILLED) {
-                gossipManager.add(target.getUniqueID(), GossipType.MAJOR_POSITIVE, SapienceConfig.COMMON.WITHER_KILLED_GOSSIP_VALUE.get());
-                gossipManager.add(target.getUniqueID(), GossipType.MINOR_POSITIVE, SapienceConfig.COMMON.WITHER_KILLED_BONUS_GOSSIP_VALUE.get());
+                gossipManager.add(target.getUUID(), GossipType.MAJOR_POSITIVE, SapienceConfig.COMMON.WITHER_KILLED_GOSSIP_VALUE.get());
+                gossipManager.add(target.getUUID(), GossipType.MINOR_POSITIVE, SapienceConfig.COMMON.WITHER_KILLED_BONUS_GOSSIP_VALUE.get());
             }
 
             // Major positive events - slaying wither skeletons
             else if (type == PiglinReputationType.WITHER_SKELETON_KILLED) {
-                gossipManager.add(target.getUniqueID(), GossipType.MAJOR_POSITIVE, SapienceConfig.COMMON.WITHER_SKELETON_KILLED_GOSSIP_VALUE.get());
-                gossipManager.add(target.getUniqueID(), GossipType.MINOR_POSITIVE, SapienceConfig.COMMON.WITHER_SKELETON_KILLED_BONUS_GOSSIP_VALUE.get());
+                gossipManager.add(target.getUUID(), GossipType.MAJOR_POSITIVE, SapienceConfig.COMMON.WITHER_SKELETON_KILLED_GOSSIP_VALUE.get());
+                gossipManager.add(target.getUUID(), GossipType.MINOR_POSITIVE, SapienceConfig.COMMON.WITHER_SKELETON_KILLED_BONUS_GOSSIP_VALUE.get());
             }
 
             // Minor positive events - giving gifts, bartering
             else if(type == PiglinReputationType.GOLD_GIFT){
-                gossipManager.add(target.getUniqueID(), GossipType.MINOR_POSITIVE, SapienceConfig.COMMON.GOLD_GIFT_GOSSIP_VALUE.get());
+                gossipManager.add(target.getUUID(), GossipType.MINOR_POSITIVE, SapienceConfig.COMMON.GOLD_GIFT_GOSSIP_VALUE.get());
             }
             else if (type == PiglinReputationType.FOOD_GIFT) {
-                gossipManager.add(target.getUniqueID(), GossipType.MINOR_POSITIVE, SapienceConfig.COMMON.FOOD_GIFT_GOSSIP_VALUE.get());
+                gossipManager.add(target.getUUID(), GossipType.MINOR_POSITIVE, SapienceConfig.COMMON.FOOD_GIFT_GOSSIP_VALUE.get());
             }
             else if (type == PiglinReputationType.BARTER) {
-                gossipManager.add(target.getUniqueID(), GossipType.TRADING, SapienceConfig.COMMON.BARTER_GOSSIP_VALUE.get());
+                gossipManager.add(target.getUUID(), GossipType.TRADING, SapienceConfig.COMMON.BARTER_GOSSIP_VALUE.get());
             }
 
             // Minor negative events - hurting piglins, stealing gold
             else if (type == PiglinReputationType.GOLD_STOLEN) {
-                gossipManager.add(target.getUniqueID(), GossipType.MINOR_NEGATIVE, SapienceConfig.COMMON.GOLD_STOLEN_GOSSIP_VALUE.get());
+                gossipManager.add(target.getUUID(), GossipType.MINOR_NEGATIVE, SapienceConfig.COMMON.GOLD_STOLEN_GOSSIP_VALUE.get());
             }
             else if (type == PiglinReputationType.ADULT_PIGLIN_HURT) {
-                gossipManager.add(target.getUniqueID(), GossipType.MINOR_NEGATIVE, SapienceConfig.COMMON.ADULT_PIGLIN_HURT_GOSSIP_VALUE.get());
+                gossipManager.add(target.getUUID(), GossipType.MINOR_NEGATIVE, SapienceConfig.COMMON.ADULT_PIGLIN_HURT_GOSSIP_VALUE.get());
             }
             else if (type == PiglinReputationType.BABY_PIGLIN_HURT) {
-                gossipManager.add(target.getUniqueID(), GossipType.MINOR_NEGATIVE, SapienceConfig.COMMON.BABY_PIGLIN_HURT_GOSSIP_VALUE.get());
+                gossipManager.add(target.getUUID(), GossipType.MINOR_NEGATIVE, SapienceConfig.COMMON.BABY_PIGLIN_HURT_GOSSIP_VALUE.get());
             }
 
             // Major negative events - killing piglins
             else if (type == PiglinReputationType.ADULT_PIGLIN_KILLED) {
-                gossipManager.add(target.getUniqueID(), GossipType.MAJOR_NEGATIVE, SapienceConfig.COMMON.ADULT_PIGLIN_KILLED_GOSSIP_VALUE.get());
-                gossipManager.add(target.getUniqueID(), GossipType.MINOR_NEGATIVE, SapienceConfig.COMMON.ADULT_PIGLIN_KILLED_BONUS_GOSSIP_VALUE.get());
+                gossipManager.add(target.getUUID(), GossipType.MAJOR_NEGATIVE, SapienceConfig.COMMON.ADULT_PIGLIN_KILLED_GOSSIP_VALUE.get());
+                gossipManager.add(target.getUUID(), GossipType.MINOR_NEGATIVE, SapienceConfig.COMMON.ADULT_PIGLIN_KILLED_BONUS_GOSSIP_VALUE.get());
             }
             else if (type == PiglinReputationType.BABY_PIGLIN_KILLED) {
-                gossipManager.add(target.getUniqueID(), GossipType.MAJOR_NEGATIVE, SapienceConfig.COMMON.BABY_PIGLIN_KILLED_GOSSIP_VALUE.get());
-                gossipManager.add(target.getUniqueID(), GossipType.MINOR_NEGATIVE, SapienceConfig.COMMON.BABY_PIGLIN_KILLED_BONUS_GOSSIP_VALUE.get());
+                gossipManager.add(target.getUUID(), GossipType.MAJOR_NEGATIVE, SapienceConfig.COMMON.BABY_PIGLIN_KILLED_GOSSIP_VALUE.get());
+                gossipManager.add(target.getUUID(), GossipType.MINOR_NEGATIVE, SapienceConfig.COMMON.BABY_PIGLIN_KILLED_BONUS_GOSSIP_VALUE.get());
             }
 
             // Extremely major negative events - killing piglin brutes
             else if (type == PiglinReputationType.BRUTE_KILLED) {
-                gossipManager.add(target.getUniqueID(), GossipType.MAJOR_NEGATIVE, SapienceConfig.COMMON.BRUTE_KILLED_GOSSIP_VALUE.get());
-                gossipManager.add(target.getUniqueID(), GossipType.MINOR_NEGATIVE, SapienceConfig.COMMON.BRUTE_KILLED_BONUS_GOSSIP_VALUE.get());
+                gossipManager.add(target.getUUID(), GossipType.MAJOR_NEGATIVE, SapienceConfig.COMMON.BRUTE_KILLED_GOSSIP_VALUE.get());
+                gossipManager.add(target.getUUID(), GossipType.MINOR_NEGATIVE, SapienceConfig.COMMON.BRUTE_KILLED_BONUS_GOSSIP_VALUE.get());
             }
         }
     }
 
     // used in ShareGoldTask#updateTask
-    public static void spreadGossip(AbstractPiglinEntity host, LivingEntity ally, long gameTime) {
+    public static void spreadGossip(AbstractPiglin host, LivingEntity ally, long gameTime) {
         IReputation hostReputation = getReputationCapability(host);
         IReputation allyReputation = getReputationCapability(ally);
 
         if(hostReputation != null && allyReputation != null){
             if ((gameTime < hostReputation.getLastGossipTime() || gameTime >= hostReputation.getLastGossipTime() + 1200L)
                     && (gameTime < allyReputation.getLastGossipTime() || gameTime >= allyReputation.getLastGossipTime() + 1200L)) {
-                hostReputation.getGossipManager().transferFrom(allyReputation.getGossipManager(), host.getRNG(), 10);
+                hostReputation.getGossipManager().transferFrom(allyReputation.getGossipManager(), host.getRandom(), 10);
                 hostReputation.setLastGossipTime(gameTime);
                 allyReputation.setLastGossipTime(gameTime);
             }
         }
     }
 
-    public static void makeWitnessesOfMurder(LivingEntity murderedEntity, Entity murderer, IReputationType killedReputationType){
-        if (murderedEntity.world instanceof ServerWorld) {
-            AxisAlignedBB axisalignedbb = murderedEntity.getBoundingBox().grow(16.0D, 16.0D, 16.0D);
-            List<LivingEntity> nearbyWitnesses = murderedEntity.world.getEntitiesWithinAABB(LivingEntity.class, axisalignedbb,
-                    (nearbyEntity) -> nearbyEntity != murderedEntity && nearbyEntity.isAlive() && nearbyEntity.canEntityBeSeen(murderedEntity));
+    public static void makeWitnessesOfMurder(LivingEntity murderedEntity, Entity murderer, ReputationEventType killedReputationType){
+        if (murderedEntity.level instanceof ServerLevel) {
+            AABB axisalignedbb = murderedEntity.getBoundingBox().inflate(16.0D, 16.0D, 16.0D);
+            List<LivingEntity> nearbyWitnesses = murderedEntity.level.getEntitiesOfClass(LivingEntity.class, axisalignedbb,
+                    (nearbyEntity) -> nearbyEntity != murderedEntity && nearbyEntity.isAlive() && nearbyEntity.canSee(murderedEntity));
 
-            ServerWorld serverworld = (ServerWorld)murderedEntity.world;
-            nearbyWitnesses.stream().filter((gossipTarget) -> gossipTarget instanceof IReputationTracking).forEach((gossipTarget) -> {
-                serverworld.updateReputation(killedReputationType, murderer, (IReputationTracking)gossipTarget);
+            ServerLevel serverworld = (ServerLevel)murderedEntity.level;
+            nearbyWitnesses.stream().filter((gossipTarget) -> gossipTarget instanceof ReputationEventHandler).forEach((gossipTarget) -> {
+                serverworld.onReputationEvent(killedReputationType, murderer, (ReputationEventHandler)gossipTarget);
             });
         }
     }
 
     // called by the mob's tick method - use LivingUpdateEvent instead
-    public static void updateGossip(MobEntity mobEntity) {
+    public static void updateGossip(Mob mobEntity) {
         IReputation reputation = getReputationCapability(mobEntity);
-        if(reputation != null && mobEntity.world instanceof ServerWorld){
-            long gameTime = mobEntity.world.getGameTime();
+        if(reputation != null && mobEntity.level instanceof ServerLevel){
+            long gameTime = mobEntity.level.getGameTime();
             if (reputation.getLastGossipDecay() == 0L) {
                 reputation.setLastGossipDecay(gameTime);
             } else if (gameTime >= reputation.getLastGossipDecay() + 24000L) {
-                reputation.getGossipManager().tick();
+                reputation.getGossipManager().decay();
                 reputation.setLastGossipDecay(gameTime);
             }
         }
@@ -146,10 +146,10 @@ public class ReputationHelper {
 
     // call this when the zombified version of the mob gets cured
     // current plan is no curing zombified piglins, but will keep this here just in case
-    public static void setGossip(MobEntity mobEntity, INBT gossip) {
+    public static void setGossip(Mob mobEntity, Tag gossip) {
         IReputation reputation = getReputationCapability(mobEntity);
         if(reputation != null){
-            reputation.getGossipManager().read(new Dynamic<>(NBTDynamicOps.INSTANCE, gossip));
+            reputation.getGossipManager().update(new Dynamic<>(NbtOps.INSTANCE, gossip));
         }
     }
 
@@ -164,54 +164,54 @@ public class ReputationHelper {
             }
 
              */
-            return reputation.getGossipManager().getReputation(entityToCheck.getUniqueID(), (gossipType) -> true);
+            return reputation.getGossipManager().getReputation(entityToCheck.getUUID(), (gossipType) -> true);
         }
         else return NEUTRAL_REPUTATION; // Default value
     }
 
     @Nullable
-    public static Entity getPreviousInteractor(MobEntity mobEntity){
+    public static Entity getPreviousInteractor(Mob mobEntity){
         IReputation reputation = getReputationCapability(mobEntity);
-        if(reputation != null && mobEntity.world instanceof ServerWorld){
+        if(reputation != null && mobEntity.level instanceof ServerLevel){
             if(reputation.getPreviousInteractor() != null){
-                return ((ServerWorld) mobEntity.world).getEntityByUuid(reputation.getPreviousInteractor());
+                return ((ServerLevel) mobEntity.level).getEntity(reputation.getPreviousInteractor());
             }
             else return null;
         }
         else return null;
     }
 
-    public static void setPreviousInteractor(MobEntity mobEntity, @Nullable Entity interactor){
+    public static void setPreviousInteractor(Mob mobEntity, @Nullable Entity interactor){
         IReputation reputation = getReputationCapability(mobEntity);
         if(reputation != null){
             if(interactor != null){
-                reputation.setPreviousInteractor(interactor.getUniqueID());
+                reputation.setPreviousInteractor(interactor.getUUID());
             }
             else reputation.setPreviousInteractor(null);
         }
     }
 
-    public static void updatePreviousInteractorReputation(MobEntity mobEntity, IReputationType reputationType) {
+    public static void updatePreviousInteractorReputation(Mob mobEntity, ReputationEventType reputationType) {
         Entity previousInteractor = getPreviousInteractor(mobEntity);
-        if(previousInteractor != null && mobEntity instanceof IReputationTracking && mobEntity.world instanceof ServerWorld){
-            ServerWorld serverWorld = (ServerWorld) mobEntity.world;
-            serverWorld.updateReputation(reputationType, previousInteractor, (IReputationTracking) mobEntity);
+        if(previousInteractor != null && mobEntity instanceof ReputationEventHandler && mobEntity.level instanceof ServerLevel){
+            ServerLevel serverWorld = (ServerLevel) mobEntity.level;
+            serverWorld.onReputationEvent(reputationType, previousInteractor, (ReputationEventHandler) mobEntity);
             setPreviousInteractor(mobEntity, null);
         }
     }
 
-    public static boolean isAllowedToTouchGold(PlayerEntity playerEntity, PiglinEntity nearbyPiglin) {
+    public static boolean isAllowedToTouchGold(Player playerEntity, Piglin nearbyPiglin) {
         return getEntityReputation(nearbyPiglin, playerEntity) >= ALLY_REPUTATION
                 || GeneralHelper.isOnSameTeam(nearbyPiglin, playerEntity);
     }
 
     public static boolean hasAcceptableAttire(LivingEntity livingEntity, LivingEntity sensorEntity) {
-        return (PiglinTasks.func_234460_a_(livingEntity) &&
+        return (PiglinAi.isWearingGold(livingEntity) &&
                 getEntityReputation(sensorEntity, livingEntity) > ENEMY_REPUTATION)
                 || getEntityReputation(sensorEntity, livingEntity) >= FRIENDLY_REPUTATION;
     }
 
-    public static boolean isAllowedToBarter(PiglinEntity piglinEntity, LivingEntity interactorEntity) {
+    public static boolean isAllowedToBarter(Piglin piglinEntity, LivingEntity interactorEntity) {
         return getEntityReputation(piglinEntity, interactorEntity) > UNFRIENDLY_REPUTATION;
     }
 }

@@ -3,30 +3,30 @@ package com.infamous.sapience.mixin;
 import com.infamous.sapience.mod.IShakesHead;
 import com.infamous.sapience.util.*;
 import com.mojang.datafixers.util.Pair;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.item.ItemEntity;
-import net.minecraft.entity.merchant.IReputationTracking;
-import net.minecraft.entity.merchant.IReputationType;
-import net.minecraft.entity.monster.piglin.AbstractPiglinEntity;
-import net.minecraft.entity.monster.piglin.PiglinAction;
-import net.minecraft.entity.monster.piglin.PiglinEntity;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.network.datasync.DataParameter;
-import net.minecraft.network.datasync.DataSerializers;
-import net.minecraft.network.datasync.EntityDataManager;
-import net.minecraft.particles.ParticleTypes;
-import net.minecraft.potion.EffectInstance;
-import net.minecraft.potion.EffectType;
-import net.minecraft.util.ActionResultType;
-import net.minecraft.util.Hand;
-import net.minecraft.util.SoundCategory;
-import net.minecraft.util.SoundEvents;
-import net.minecraft.world.World;
-import net.minecraft.world.server.ServerWorld;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.entity.ReputationEventHandler;
+import net.minecraft.world.entity.ai.village.ReputationEventType;
+import net.minecraft.world.entity.monster.piglin.AbstractPiglin;
+import net.minecraft.world.entity.monster.piglin.PiglinArmPose;
+import net.minecraft.world.entity.monster.piglin.Piglin;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.syncher.EntityDataAccessor;
+import net.minecraft.network.syncher.EntityDataSerializers;
+import net.minecraft.network.syncher.SynchedEntityData;
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffectCategory;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.world.level.Level;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import org.spongepowered.asm.mixin.Mixin;
@@ -35,70 +35,70 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-@Mixin(PiglinEntity.class)
-public abstract class PiglinEntityMixin extends AbstractPiglinEntity implements IShakesHead, IReputationTracking {
-    private static final DataParameter<Integer> SHAKE_HEAD_TICKS = EntityDataManager.createKey(PiglinEntity.class, DataSerializers.VARINT);
+@Mixin(Piglin.class)
+public abstract class PiglinEntityMixin extends AbstractPiglin implements IShakesHead, ReputationEventHandler {
+    private static final EntityDataAccessor<Integer> SHAKE_HEAD_TICKS = SynchedEntityData.defineId(Piglin.class, EntityDataSerializers.INT);
     private static final int NO_TICKS = 40;
 
-    public PiglinEntityMixin(EntityType<? extends AbstractPiglinEntity> entityType, World world) {
+    public PiglinEntityMixin(EntityType<? extends AbstractPiglin> entityType, Level world) {
         super(entityType, world);
     }
 
-    @Inject(at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/monster/piglin/PiglinTasks;func_234480_a_(Lnet/minecraft/item/Item;)Z"), method = "func_234424_eM_", cancellable = true)
-    private void canPiglinAdmire(CallbackInfoReturnable<PiglinAction> callbackInfoReturnable){
-        boolean isPiglinLoved = PiglinTasksHelper.isPiglinLoved(this.getHeldItemOffhand().getItem());
-        boolean isPiglinGreedItem = PiglinTasksHelper.isBarterItem(this.getHeldItemOffhand().getItem());
+    @Inject(at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/monster/piglin/PiglinAi;isLovedItem(Lnet/minecraft/world/item/ItemStack;)Z"), method = "getArmPose", cancellable = true)
+    private void canPiglinAdmire(CallbackInfoReturnable<PiglinArmPose> callbackInfoReturnable){
+        boolean isPiglinLoved = PiglinTasksHelper.isPiglinLoved(this.getOffhandItem().getItem());
+        boolean isPiglinGreedItem = PiglinTasksHelper.isBarterItem(this.getOffhandItem().getItem());
         if(isPiglinLoved || isPiglinGreedItem){
-            callbackInfoReturnable.setReturnValue(PiglinAction.ADMIRING_ITEM);
+            callbackInfoReturnable.setReturnValue(PiglinArmPose.ADMIRING_ITEM);
         }
     }
 
-    @Inject(at = @At(value = "HEAD"), method = "func_234436_k_", cancellable = true)
+    @Inject(at = @At(value = "HEAD"), method = "addToInventory", cancellable = true)
     private void onAddToInventory(ItemStack stack, CallbackInfoReturnable<ItemStack> callbackInfoReturnable) {
         if(PiglinTasksHelper.isBarterItem(stack.getItem())){
-            CompoundNBT compoundNBT = stack.getOrCreateTag();
+            CompoundTag compoundNBT = stack.getOrCreateTag();
             ItemStack remainder = GreedHelper.addGreedItemToGreedInventory(this, stack, compoundNBT.getBoolean(GreedHelper.BARTERED));
             callbackInfoReturnable.setReturnValue(remainder);
         }
     }
 
-    @Inject(at = @At("RETURN"), method = "func_230254_b_", cancellable = true)
-    private void processInteraction(PlayerEntity playerEntity, Hand handIn, CallbackInfoReturnable<ActionResultType> callbackInfoReturnable){
-        ActionResultType actionResultType = callbackInfoReturnable.getReturnValue();
+    @Inject(at = @At("RETURN"), method = "mobInteract", cancellable = true)
+    private void processInteraction(Player playerEntity, InteractionHand handIn, CallbackInfoReturnable<InteractionResult> callbackInfoReturnable){
+        InteractionResult actionResultType = callbackInfoReturnable.getReturnValue();
 
-        if(!actionResultType.isSuccessOrConsume()){
+        if(!actionResultType.consumesAction()){
             // check greed action result type
             actionResultType = PiglinTasksHelper.getGreedActionResultType(this, playerEntity, handIn, actionResultType);
-            if(!actionResultType.isSuccessOrConsume()){
+            if(!actionResultType.consumesAction()){
                 // check ageable action result type
                 actionResultType = PiglinTasksHelper.getAgeableActionResultType(this, playerEntity, handIn, actionResultType);
             }
         }
 
         // handle final action result type now
-        if(!actionResultType.isSuccessOrConsume()){
+        if(!actionResultType.consumesAction()){
             this.setShakeHeadTicks(NO_TICKS);
 
-            this.playSound(SoundEvents.ENTITY_PIGLIN_ANGRY, this.getSoundVolume(), this.getSoundPitch());
-            if(!this.world.isRemote){
-                this.world.setEntityState(this, (byte) GeneralHelper.DECLINE_ID);
+            this.playSound(SoundEvents.PIGLIN_ANGRY, this.getSoundVolume(), this.getVoicePitch());
+            if(!this.level.isClientSide){
+                this.level.broadcastEntityEvent(this, (byte) GeneralHelper.DECLINE_ID);
             }
         }
         else{
-            this.playSound(SoundEvents.ENTITY_PIGLIN_CELEBRATE, this.getSoundVolume(), this.getSoundPitch());
-            if(!this.world.isRemote){
-                this.world.setEntityState(this, (byte) GeneralHelper.ACCEPT_ID);
+            this.playSound(SoundEvents.PIGLIN_CELEBRATE, this.getSoundVolume(), this.getVoicePitch());
+            if(!this.level.isClientSide){
+                this.level.broadcastEntityEvent(this, (byte) GeneralHelper.ACCEPT_ID);
             }
         }
         callbackInfoReturnable.setReturnValue(actionResultType);
     }
-    @Inject(at = @At("HEAD"), method = "dropSpecialItems", cancellable = true)
+    @Inject(at = @At("HEAD"), method = "dropCustomDeathLoot", cancellable = true)
     private void dropSpecialItems(CallbackInfo callbackInfo){
         //AgeableHelper.dropAllFoodItems(this);
         GreedHelper.dropGreedItems(this);
     }
 
-    @Inject(at = @At("HEAD"), method = "func_234416_a_", cancellable = true)
+    @Inject(at = @At("HEAD"), method = "finishConversion", cancellable = true)
     private void zombify(CallbackInfo callbackInfo){
         //AgeableHelper.dropAllFoodItems(this);
         GreedHelper.dropGreedItems(this);
@@ -106,7 +106,7 @@ public abstract class PiglinEntityMixin extends AbstractPiglinEntity implements 
 
     @OnlyIn(Dist.CLIENT)
     @Override
-    public void handleStatusUpdate(byte id) {
+    public void handleEntityEvent(byte id) {
         if(id == AgeableHelper.BREEDING_ID){
             GeneralHelper.spawnParticles(this, ParticleTypes.HEART);
         }
@@ -123,35 +123,35 @@ public abstract class PiglinEntityMixin extends AbstractPiglinEntity implements 
             GeneralHelper.spawnParticles(this, ParticleTypes.HAPPY_VILLAGER);
         }
         else{
-            super.handleStatusUpdate(id);
+            super.handleEntityEvent(id);
         }
     }
 
     @Override
-    public ItemStack onFoodEaten(World world, ItemStack itemStack) {
-        if (itemStack.isFood()) {
-            world.playSound((PlayerEntity)null, this.getPosX(), this.getPosY(), this.getPosZ(), this.getEatSound(itemStack), SoundCategory.NEUTRAL, 1.0F, 1.0F + (world.rand.nextFloat() - world.rand.nextFloat()) * 0.4F);
+    public ItemStack eat(Level world, ItemStack itemStack) {
+        if (itemStack.isEdible()) {
+            world.playSound((Player)null, this.getX(), this.getY(), this.getZ(), this.getEatingSound(itemStack), SoundSource.NEUTRAL, 1.0F, 1.0F + (world.random.nextFloat() - world.random.nextFloat()) * 0.4F);
             Item item = itemStack.getItem();
-            if (item.getFood() != null) {
+            if (item.getFoodProperties() != null) {
 
-                int foodValue = item.getFood().getHealing();
+                int foodValue = item.getFoodProperties().getNutrition();
                 this.heal(foodValue); // heals the piglin by an amount equal to the food's hunger value
                 AgeableHelper.increaseFoodLevel(this, foodValue);
 
-                for(Pair<EffectInstance, Float> effectAndChancePair : item.getFood().getEffects()) {
-                    EffectInstance effectInstance = effectAndChancePair.getFirst();
+                for(Pair<MobEffectInstance, Float> effectAndChancePair : item.getFoodProperties().getEffects()) {
+                    MobEffectInstance effectInstance = effectAndChancePair.getFirst();
                     Float effectChance = effectAndChancePair.getSecond();
-                    if (!world.isRemote && effectInstance != null && world.rand.nextFloat() < effectChance) {
+                    if (!world.isClientSide && effectInstance != null && world.random.nextFloat() < effectChance) {
                         // only apply negative status effects if the item is not a piglin food
                         // we don't want piglins to get affected by Hunger if they eat a raw porkchop, for example
-                        if(effectInstance.getPotion().getEffectType() != EffectType.HARMFUL || !PiglinTasksHelper.isPiglinFoodItem(item)){
-                            this.addPotionEffect(new EffectInstance(effectInstance));
+                        if(effectInstance.getEffect().getCategory() != MobEffectCategory.HARMFUL || !PiglinTasksHelper.isPiglinFoodItem(item)){
+                            this.addEffect(new MobEffectInstance(effectInstance));
                         }
                     }
                 }
             }
             itemStack.shrink(1);
-            if(!world.isRemote){
+            if(!world.isClientSide){
                 PiglinTasksHelper.setAteRecently(this);
                 ReputationHelper.updatePreviousInteractorReputation(this, PiglinReputationType.FOOD_GIFT);
             }
@@ -160,32 +160,32 @@ public abstract class PiglinEntityMixin extends AbstractPiglinEntity implements 
         return itemStack;
     }
 
-    @Inject(at = @At("RETURN"), method = "registerData")
+    @Inject(at = @At("RETURN"), method = "defineSynchedData")
     private void registerData(CallbackInfo callbackInfo){
-        this.dataManager.register(SHAKE_HEAD_TICKS, 0);
+        this.entityData.define(SHAKE_HEAD_TICKS, 0);
     }
 
     @Override
     public int getShakeHeadTicks() {
-        return this.dataManager.get(SHAKE_HEAD_TICKS);
+        return this.entityData.get(SHAKE_HEAD_TICKS);
     }
 
     @Override
     public void setShakeHeadTicks(int ticks) {
-        this.dataManager.set(SHAKE_HEAD_TICKS, ticks);
+        this.entityData.set(SHAKE_HEAD_TICKS, ticks);
     }
 
     // called by ServerWorld in updateReputation
     @Override
-    public void updateReputation(IReputationType type, Entity target) {
+    public void onReputationEventFrom(ReputationEventType type, Entity target) {
         ReputationHelper.updatePiglinReputation(this, type, target);
     }
 
     @Override
-    public void triggerItemPickupTrigger(ItemEntity itemEntity) {
-        super.triggerItemPickupTrigger(itemEntity);
-        if(itemEntity.getThrowerId() != null && this.world instanceof ServerWorld){
-            Entity throwerEntity = ((ServerWorld) this.world).getEntityByUuid(itemEntity.getThrowerId());
+    public void onItemPickup(ItemEntity itemEntity) {
+        super.onItemPickup(itemEntity);
+        if(itemEntity.getThrower() != null && this.level instanceof ServerLevel){
+            Entity throwerEntity = ((ServerLevel) this.level).getEntity(itemEntity.getThrower());
             ReputationHelper.setPreviousInteractor(this, throwerEntity);
         }
     }

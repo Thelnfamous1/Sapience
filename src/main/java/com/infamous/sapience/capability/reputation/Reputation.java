@@ -1,22 +1,22 @@
 package com.infamous.sapience.capability.reputation;
 
-import net.minecraft.village.GossipManager;
+import net.minecraft.world.entity.ai.gossip.GossipContainer;
 
 import javax.annotation.Nullable;
 import java.util.UUID;
 
 public class Reputation implements IReputation{
-    private GossipManager gossipManager;
+    private GossipContainer gossipManager;
     private long lastGossipTime;
     private long lastGossipDecay;
     private UUID previousInteractor;
 
     public Reputation(){
-        this.gossipManager = new GossipManager();
+        this.gossipManager = new GossipContainer();
     }
 
     @Override
-    public GossipManager getGossipManager() {
+    public GossipContainer getGossipManager() {
         return this.gossipManager;
     }
 

@@ -4,23 +4,23 @@ import com.infamous.sapience.SapienceConfig;
 import com.infamous.sapience.capability.ageable.IAgeable;
 import com.infamous.sapience.util.PiglinReputationType;
 import com.infamous.sapience.util.*;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.ai.brain.Brain;
-import net.minecraft.entity.ai.brain.BrainUtil;
-import net.minecraft.entity.ai.brain.memory.MemoryModuleType;
-import net.minecraft.entity.ai.brain.task.FirstShuffledTask;
-import net.minecraft.entity.item.ItemEntity;
-import net.minecraft.entity.monster.piglin.AbstractPiglinEntity;
-import net.minecraft.entity.monster.piglin.PiglinEntity;
-import net.minecraft.entity.monster.piglin.PiglinTasks;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.util.ActionResultType;
-import net.minecraft.util.Hand;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.ai.Brain;
+import net.minecraft.world.entity.ai.behavior.BehaviorUtils;
+import net.minecraft.world.entity.ai.memory.MemoryModuleType;
+import net.minecraft.world.entity.ai.behavior.RunOne;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.entity.monster.piglin.AbstractPiglin;
+import net.minecraft.world.entity.monster.piglin.Piglin;
+import net.minecraft.world.entity.monster.piglin.PiglinAi;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.InteractionHand;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -32,45 +32,45 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import java.util.List;
 import java.util.stream.Collectors;
 
-@Mixin(PiglinTasks.class)
+@Mixin(PiglinAi.class)
 public class PiglinTasksMixin {
 
-    @Inject(at = @At("HEAD"), method = "func_234468_a_", cancellable = true)
-    private static void wasHurtBy(PiglinEntity piglin, LivingEntity attacker, CallbackInfo ci){
+    @Inject(at = @At("HEAD"), method = "wasHurtBy", cancellable = true)
+    private static void wasHurtBy(Piglin piglin, LivingEntity attacker, CallbackInfo ci){
         if(GeneralHelper.isOnSameTeam(piglin, attacker)){
             ci.cancel();
         }
     }
 
     @Redirect(at = @At(value = "INVOKE",
-            target = "Lnet/minecraft/entity/monster/piglin/PiglinTasks;func_234459_a_(Lnet/minecraft/entity/EntityType;)Z"),
-            method = "func_234533_t_")
-    private static boolean shouldAvoidZombified(EntityType entityType, PiglinEntity piglin){
-        Brain<PiglinEntity> brain = piglin.getBrain();
+            target = "Lnet/minecraft/world/entity/monster/piglin/PiglinAi;isZombified(Lnet/minecraft/world/entity/EntityType;)Z"),
+            method = "wantsToStopFleeing")
+    private static boolean shouldAvoidZombified(EntityType entityType, Piglin piglin){
+        Brain<Piglin> brain = piglin.getBrain();
         LivingEntity livingentity = brain.getMemory(MemoryModuleType.AVOID_TARGET).get();
         return PiglinTasksHelper.isZombified(livingentity)
                 && GeneralHelper.isNotOnSameTeam(piglin, livingentity);
     }
 
-    @Inject(at = @At("RETURN"), method = "func_234481_b_", cancellable = true)
-    private static void getLookTasks(CallbackInfoReturnable<FirstShuffledTask<PiglinEntity>> callbackInfoReturnable){
-        FirstShuffledTask<PiglinEntity> firstShuffledTask = new FirstShuffledTask<>(PiglinTasksHelper.getInteractionTasks());
+    @Inject(at = @At("RETURN"), method = "createIdleMovementBehaviors", cancellable = true)
+    private static void getLookTasks(CallbackInfoReturnable<RunOne<Piglin>> callbackInfoReturnable){
+        RunOne<Piglin> firstShuffledTask = new RunOne<>(PiglinTasksHelper.getInteractionTasks());
         callbackInfoReturnable.setReturnValue(firstShuffledTask);
     }
 
-    @Inject(at = @At("HEAD"), method = "func_234497_c_")
-    private static void setAngerTarget(AbstractPiglinEntity piglinEntity, LivingEntity target, CallbackInfo callbackInfo){
+    @Inject(at = @At("HEAD"), method = "setAngerTarget")
+    private static void setAngerTarget(AbstractPiglin piglinEntity, LivingEntity target, CallbackInfo callbackInfo){
         if(PiglinTasksHelper.canTarget(target)){
-            piglinEntity.world.setEntityState(piglinEntity, (byte) GeneralHelper.ANGER_ID);
+            piglinEntity.level.broadcastEntityEvent(piglinEntity, (byte) GeneralHelper.ANGER_ID);
         }
     }
 
     @Inject(at =
     @At(value = "INVOKE",
-            target = "Lnet/minecraft/entity/monster/piglin/PiglinTasks;func_234465_a_(Lnet/minecraft/entity/item/ItemEntity;)Lnet/minecraft/item/ItemStack;"),
-            method = "func_234470_a_",
+            target = "Lnet/minecraft/world/entity/monster/piglin/PiglinAi;removeOneItemFromItemEntity(Lnet/minecraft/world/entity/item/ItemEntity;)Lnet/minecraft/world/item/ItemStack;"),
+            method = "pickUpItem",
             cancellable = true)
-    private static void pickUpWantedItem(PiglinEntity piglinEntity, ItemEntity itemEntity, CallbackInfo callbackInfo){
+    private static void pickUpWantedItem(Piglin piglinEntity, ItemEntity itemEntity, CallbackInfo callbackInfo){
         IAgeable ageable = AgeableHelper.getAgeableCapability(piglinEntity);
         if(ageable != null && PiglinTasksHelper.isPiglinFoodItem(itemEntity.getItem().getItem())){
             ItemStack extractedItemStack = PiglinTasksHelper.extractSingletonFromItemEntity(itemEntity);
@@ -89,15 +89,15 @@ public class PiglinTasksMixin {
         }
     }
 
-    @Inject(at = @At("RETURN"), method = "func_234499_c_", cancellable = true)
-    private static void isPiglinFoodItem(Item item, CallbackInfoReturnable<Boolean> callbackInfoReturnable){
-        boolean isPiglinFoodItem = PiglinTasksHelper.isPiglinFoodItem(item);
+    @Inject(at = @At("RETURN"), method = "isFood", cancellable = true)
+    private static void isPiglinFoodItem(ItemStack item, CallbackInfoReturnable<Boolean> callbackInfoReturnable){
+        boolean isPiglinFoodItem = PiglinTasksHelper.isPiglinFoodItem(item.getItem());
         callbackInfoReturnable.setReturnValue(isPiglinFoodItem);
     }
 
 
-    @Inject(at = @At("RETURN"), method = "func_234474_a_", cancellable = true)
-    private static void canPickUpItemStack(PiglinEntity piglinEntity, ItemStack itemStack, CallbackInfoReturnable<Boolean> callbackInfoReturnable){
+    @Inject(at = @At("RETURN"), method = "wantsToPickup", cancellable = true)
+    private static void canPickUpItemStack(Piglin piglinEntity, ItemStack itemStack, CallbackInfoReturnable<Boolean> callbackInfoReturnable){
         boolean hasConsumableOffhandItem = PiglinTasksHelper.hasConsumableOffhandItem(piglinEntity);
         boolean canPickUpItemStack = callbackInfoReturnable.getReturnValue();
         if (PiglinTasksHelper.isPiglinFoodItem(itemStack.getItem())) {
@@ -109,32 +109,32 @@ public class PiglinTasksMixin {
     // when the piglin is going to finish admiring an item
     // the goal here is to check if the piglin should drop from the alternative barter loot tables
     // and also update the player's reputation with the piglin if it can do a barter successfully
-    @Inject(at = @At(value = "HEAD"), method = "func_234477_a_", cancellable = true)
-    private static void finishAdmiringItem(PiglinEntity piglinEntity, boolean doBarter, CallbackInfo callbackInfo){
+    @Inject(at = @At(value = "HEAD"), method = "stopHoldingOffHandItem", cancellable = true)
+    private static void finishAdmiringItem(Piglin piglinEntity, boolean doBarter, CallbackInfo callbackInfo){
 
         Entity interactorEntity = ReputationHelper.getPreviousInteractor(piglinEntity);
         boolean willDropLoot =
                 interactorEntity instanceof LivingEntity && ReputationHelper.isAllowedToBarter(piglinEntity, (LivingEntity) interactorEntity)
                 || interactorEntity == null && !SapienceConfig.COMMON.REQUIRE_LIVING_FOR_BARTER.get();
 
-        ItemStack offhandStack = piglinEntity.getHeldItem(Hand.OFF_HAND);
+        ItemStack offhandStack = piglinEntity.getItemInHand(InteractionHand.OFF_HAND);
 
         boolean isIngotBarterGreedItem = PiglinTasksHelper.isNormalBarterItem(offhandStack.getItem());
         if (isIngotBarterGreedItem) {
-            GreedHelper.addStackToGreedInventoryCheckBartered(piglinEntity, offhandStack, doBarter && piglinEntity.func_242337_eM());
+            GreedHelper.addStackToGreedInventoryCheckBartered(piglinEntity, offhandStack, doBarter && piglinEntity.isAdult());
         }
 
-        if (!piglinEntity.isChild()) { // isAdult
+        if (!piglinEntity.isBaby()) { // isAdult
             if(PiglinTasksHelper.isExpensiveBarterItem(offhandStack.getItem()) && doBarter && willDropLoot){
                 PiglinTasksHelper.dropBlockBarteringLoot(piglinEntity);
-                CompoundNBT compoundNBT = offhandStack.getOrCreateTag();
+                CompoundTag compoundNBT = offhandStack.getOrCreateTag();
                 compoundNBT.putBoolean(GreedHelper.BARTERED, true);
 
                 ReputationHelper.updatePreviousInteractorReputation(piglinEntity, PiglinReputationType.BARTER);
             }
             else if(PiglinTasksHelper.isCheapBarterItem(offhandStack.getItem()) && doBarter && willDropLoot){
                 PiglinTasksHelper.dropNuggetBarteringLoot(piglinEntity);
-                CompoundNBT compoundNBT = offhandStack.getOrCreateTag();
+                CompoundTag compoundNBT = offhandStack.getOrCreateTag();
                 compoundNBT.putBoolean(GreedHelper.BARTERED, true);
 
                 ReputationHelper.updatePreviousInteractorReputation(piglinEntity, PiglinReputationType.BARTER);
@@ -152,8 +152,8 @@ public class PiglinTasksMixin {
 
     // When the piglin drops bartering loot after having been given piglin currency
     // The goal here is to prevent it dropping bartering loot if the player's rep is too low
-    @Inject(at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/monster/piglin/PiglinTasks;func_234475_a_(Lnet/minecraft/entity/monster/piglin/PiglinEntity;Ljava/util/List;)V", ordinal = 0), method = "func_234477_a_", cancellable = true)
-    private static void dropLoot(PiglinEntity piglinEntity, boolean doBarter, CallbackInfo callbackInfo){
+    @Inject(at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/monster/piglin/PiglinAi;throwItems(Lnet/minecraft/world/entity/monster/piglin/Piglin;Ljava/util/List;)V", ordinal = 0), method = "stopHoldingOffHandItem", cancellable = true)
+    private static void dropLoot(Piglin piglinEntity, boolean doBarter, CallbackInfo callbackInfo){
         Entity interactorEntity = ReputationHelper.getPreviousInteractor(piglinEntity);
 
         if(doBarter){
@@ -168,17 +168,17 @@ public class PiglinTasksMixin {
         }
     }
 
-    @Inject(at = @At(value = "RETURN"), method = "func_234489_b_", cancellable = true)
-    private static void canAcceptItemStack(PiglinEntity piglinEntity, ItemStack itemStack, CallbackInfoReturnable<Boolean> callbackInfoReturnable){
+    @Inject(at = @At(value = "RETURN"), method = "canAdmire", cancellable = true)
+    private static void canAcceptItemStack(Piglin piglinEntity, ItemStack itemStack, CallbackInfoReturnable<Boolean> callbackInfoReturnable){
         callbackInfoReturnable.setReturnValue(callbackInfoReturnable.getReturnValue() && !PiglinTasksHelper.hasConsumableOffhandItem(piglinEntity));
     }
 
-    @ModifyVariable(at = @At("STORE"), method = "func_234478_a_")
-    private static List<PiglinEntity> getPiglinsAngryAtThief(List<PiglinEntity> nearbyPiglinsList, PlayerEntity playerEntity, boolean checkVisible) {
-        List<PiglinEntity> filteredNearbyPiglinsList = nearbyPiglinsList
+    @ModifyVariable(at = @At("STORE"), method = "angerNearbyPiglins")
+    private static List<Piglin> getPiglinsAngryAtThief(List<Piglin> nearbyPiglinsList, Player playerEntity, boolean checkVisible) {
+        List<Piglin> filteredNearbyPiglinsList = nearbyPiglinsList
                 .stream()
                 .filter(PiglinTasksHelper::hasIdle)
-                .filter((nearbyPiglin) -> !checkVisible || BrainUtil.isMobVisible(nearbyPiglin, playerEntity))
+                .filter((nearbyPiglin) -> !checkVisible || BehaviorUtils.canSee(nearbyPiglin, playerEntity))
                 .filter((nearbyPiglin) -> !ReputationHelper.isAllowedToTouchGold(playerEntity, nearbyPiglin))
                 .collect(Collectors.toList());
 
@@ -189,9 +189,9 @@ public class PiglinTasksMixin {
     }
 
     // used for processing the default interaction for receiving piglin currency
-    @Inject(at = @At("RETURN"), method = "func_234471_a_")
-    private static void processInteractionForPiglinCurrency(PiglinEntity piglinEntity, PlayerEntity playerEntity, Hand hand, CallbackInfoReturnable<ActionResultType> callbackInfoReturnable){
-        if(callbackInfoReturnable.getReturnValue().isSuccessOrConsume()){
+    @Inject(at = @At("RETURN"), method = "mobInteract")
+    private static void processInteractionForPiglinCurrency(Piglin piglinEntity, Player playerEntity, InteractionHand hand, CallbackInfoReturnable<InteractionResult> callbackInfoReturnable){
+        if(callbackInfoReturnable.getReturnValue().consumesAction()){
             ReputationHelper.setPreviousInteractor(piglinEntity, playerEntity);
         }
     }

@@ -1,8 +1,8 @@
 {
   "required": true,
   "package": "com.infamous.sapience.mixin",
-  "compatibilityLevel": "JAVA_8",
-  "minVersion": "0.8",
+  "compatibilityLevel": "JAVA_17",
+  "minVersion": "0.8.5",
   "refmap": "sapience.refmap.json",
   "mixins": [
     "AdmireItemTaskMixin",

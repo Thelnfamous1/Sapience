@@ -1,13 +1,11 @@
 package com.infamous.sapience.util;
 
-import com.infamous.sapience.capability.ageable.AgeableProvider;
 import com.infamous.sapience.Sapience;
+import com.infamous.sapience.capability.ageable.AgeableProvider;
 import com.infamous.sapience.capability.ageable.IAgeable;
-import net.minecraft.entity.*;
-import net.minecraft.inventory.Inventory;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.world.server.ServerWorld;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.*;
 import net.minecraftforge.common.util.LazyOptional;
 
 import javax.annotation.Nullable;
@@ -32,47 +30,47 @@ public class AgeableHelper {
         return null;
     }
 
-    public static void depleteParentsFoodValue(MobEntity parent, MobEntity partner) {
+    public static void depleteParentsFoodValue(Mob parent, Mob partner) {
         depleteFoodValue(parent);
         depleteFoodValue(partner);
     }
 
-    private static void depleteFoodValue(MobEntity parent) {
+    private static void depleteFoodValue(Mob parent) {
         IAgeable parentAging = AgeableHelper.getAgeableCapability(parent);
         if (parentAging != null) {
             parentAging.depleteFoodValue();
         }
     }
 
-    static boolean canBreed(MobEntity parent){
+    static boolean canBreed(Mob parent){
         IAgeable parentAging = AgeableHelper.getAgeableCapability(parent);
         return parentAging != null && parentAging.canBreed();
     }
 
-    public static boolean canPartnersBreed(MobEntity parent, MobEntity partner) {
+    public static boolean canPartnersBreed(Mob parent, Mob partner) {
         return canBreed(parent) && canBreed(partner);
     }
 
-    public static void setParentsOnBreedCooldown(MobEntity parent, MobEntity partner) {
+    public static void setParentsOnBreedCooldown(Mob parent, Mob partner) {
         setParentOnBreedCooldown(parent);
         setParentOnBreedCooldown(partner);
     }
 
-    private static void setParentOnBreedCooldown(MobEntity parent) {
+    private static void setParentOnBreedCooldown(Mob parent) {
         IAgeable parentAging = AgeableHelper.getAgeableCapability(parent);
         if (parentAging != null) {
             parentAging.setGrowingAge(BREEDING_COOLDOWN);
         }
     }
 
-    public static void increaseFoodLevel(MobEntity mobEntity, int foodValueIn) {
+    public static void increaseFoodLevel(Mob mobEntity, int foodValueIn) {
         IAgeable ageable = AgeableHelper.getAgeableCapability(mobEntity);
         if (ageable != null) {
             ageable.increaseFoodLevel(foodValueIn);
         }
     }
 
-    public static void updateGrowingAge(MobEntity mobEntity) {
+    public static void updateGrowingAge(Mob mobEntity) {
         IAgeable ageable = getAgeableCapability(mobEntity);
         if(ageable != null){
             int i = ageable.getGrowingAge();
@@ -86,26 +84,26 @@ public class AgeableHelper {
                 // Manually setting the piglin to an adult
                 // Normally, isChild would automatically return false if the growing age was not less than 0
                 // But since Piglins don't extend from AgeableEntity, we have to do it manually here
-                if(mobEntity.isChild()){
-                    mobEntity.setChild(false);
+                if(mobEntity.isBaby()){
+                    mobEntity.setBaby(false);
                 }
             }
         }
     }
 
-    public static void updateForcedAge(MobEntity mobEntity) {
+    public static void updateForcedAge(Mob mobEntity) {
         IAgeable ageable = getAgeableCapability(mobEntity);
         if(ageable != null){
             if (ageable.getForcedAgeTimer() > 0) {
                 if (ageable.getForcedAgeTimer() % 4 == 0) {
-                    mobEntity.world.setEntityState(mobEntity, (byte) AgeableHelper.GROWING_ID);
+                    mobEntity.level.broadcastEntityEvent(mobEntity, (byte) AgeableHelper.GROWING_ID);
                 }
                 ageable.setForcedAgeTimer(ageable.getForcedAgeTimer() - 1);
             }
         }
     }
 
-    public static void initializeChild(MobEntity child) {
+    public static void initializeChild(Mob child) {
         //Sapience.LOGGER.info("Initializing child entity: " + child.toString());
         IAgeable childAgeable = AgeableHelper.getAgeableCapability(child);
         if(childAgeable != null && !childAgeable.wasBorn()){
@@ -115,22 +113,22 @@ public class AgeableHelper {
     }
 
     @Nullable
-    public static MobEntity createChild(ServerWorld serverWorld, MobEntity parent, MobEntity partner){
+    public static Mob createChild(ServerLevel serverWorld, Mob parent, Mob partner){
         EntityType parentType = parent.getType();
         EntityType partnerType = partner.getType();
         if(parentType == partnerType){
-            MobEntity child = (MobEntity) parentType.create(serverWorld);
+            Mob child = (Mob) parentType.create(serverWorld);
             if(child != null){
-                child.setChild(true);
+                child.setBaby(true);
                 AgeableHelper.initializeChild(child);
-                child.onInitialSpawn(serverWorld, serverWorld.getDifficultyForLocation(child.getPosition()), SpawnReason.BREEDING, (ILivingEntityData)null, (CompoundNBT)null);
+                child.finalizeSpawn(serverWorld, serverWorld.getCurrentDifficultyAt(child.blockPosition()), MobSpawnType.BREEDING, (SpawnGroupData)null, (CompoundTag)null);
                 return child;
             }
         }
-        return (MobEntity)null;
+        return (Mob)null;
     }
 
-    public static void updateSelfAge(MobEntity mobEntity) {
+    public static void updateSelfAge(Mob mobEntity) {
         IAgeable ageable = getAgeableCapability(mobEntity);
         if (ageable != null && ageable.canSelfAge()) {
             ageable.depleteFoodValue();

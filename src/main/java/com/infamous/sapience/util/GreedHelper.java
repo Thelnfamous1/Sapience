@@ -4,19 +4,22 @@ import com.infamous.sapience.Sapience;
 import com.infamous.sapience.SapienceConfig;
 import com.infamous.sapience.capability.greed.GreedProvider;
 import com.infamous.sapience.capability.greed.IGreed;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.MobEntity;
-import net.minecraft.entity.monster.piglin.PiglinEntity;
-import net.minecraft.inventory.EquipmentSlotType;
-import net.minecraft.inventory.Inventory;
-import net.minecraft.item.*;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.util.Hand;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.SimpleContainer;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.monster.piglin.Piglin;
+import net.minecraft.world.item.*;
 import net.minecraftforge.common.Tags;
 import net.minecraftforge.common.util.LazyOptional;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 public class GreedHelper {
 
@@ -31,12 +34,12 @@ public class GreedHelper {
         return null;
     }
 
-    public static boolean doesGreedInventoryHaveGold(MobEntity mobEntity){
+    public static boolean doesGreedInventoryHaveGold(Mob mobEntity){
         IGreed greed = getGreedCapability(mobEntity);
         if(greed != null){
-            List<Item> forgeIngotsGold = Tags.Items.INGOTS_GOLD.getAllElements();
+            List<Item> forgeIngotsGold = Tags.Items.INGOTS_GOLD.getValues();
             Set<Item> goldIngots = new HashSet<>(forgeIngotsGold);
-            return greed.getGreedInventory().hasAny(goldIngots);
+            return greed.getGreedInventory().hasAnyOf(goldIngots);
         }
         return false;
     }
@@ -44,18 +47,18 @@ public class GreedHelper {
     public static void dropGreedItems(LivingEntity mobEntity){
         IGreed greed = getGreedCapability(mobEntity);
         if(greed != null){
-            greed.getGreedInventory().func_233543_f_().stream()
+            greed.getGreedInventory().removeAllItems().stream()
                     .filter(GreedHelper::wasNotTraded) // Filter out traded items
-                    .forEach(mobEntity::entityDropItem);
+                    .forEach(mobEntity::spawnAtLocation);
         }
     }
 
     private static boolean wasNotTraded(ItemStack stack) {
-        CompoundNBT compoundNBT = stack.getTag();
+        CompoundTag compoundNBT = stack.getTag();
         return compoundNBT != null && !compoundNBT.getBoolean(GreedHelper.BARTERED);
     }
 
-    public static boolean isSharingGold(MobEntity mobEntity){
+    public static boolean isSharingGold(Mob mobEntity){
         IGreed greed = getGreedCapability(mobEntity);
         if(greed != null){
             return greed.isSharingGold();
@@ -64,7 +67,7 @@ public class GreedHelper {
     }
 
 
-    private static int getIngotRequirement(EquipmentSlotType slotType){
+    private static int getIngotRequirement(EquipmentSlot slotType){
         switch (slotType){
             case HEAD:
                 return 5;
@@ -81,24 +84,24 @@ public class GreedHelper {
         }
     }
 
-    private static EquipmentSlotType getSlotForItem(Item item){
+    private static EquipmentSlot getSlotForItem(Item item){
         if(item == Items.GOLDEN_HELMET){
-            return EquipmentSlotType.HEAD;
+            return EquipmentSlot.HEAD;
         }
         else if(item == Items.GOLDEN_CHESTPLATE){
-            return EquipmentSlotType.CHEST;
+            return EquipmentSlot.CHEST;
         }
         else if(item == Items.GOLDEN_LEGGINGS){
-            return EquipmentSlotType.LEGS;
+            return EquipmentSlot.LEGS;
         }
         else if(item == Items.GOLDEN_BOOTS){
-            return EquipmentSlotType.FEET;
+            return EquipmentSlot.FEET;
         }
         else if(item == Items.GOLDEN_SWORD){
-            return EquipmentSlotType.MAINHAND;
+            return EquipmentSlot.MAINHAND;
         }
         else{
-            return EquipmentSlotType.OFFHAND;
+            return EquipmentSlot.OFFHAND;
         }
     }
 
@@ -119,7 +122,7 @@ public class GreedHelper {
         }
     }
 
-    private static ItemStack craftArmorFromGreedInventory(MobEntity mobEntity, EquipmentSlotType slotType){
+    private static ItemStack craftArmorFromGreedInventory(Mob mobEntity, EquipmentSlot slotType){
         IGreed greed = getGreedCapability(mobEntity);
         if(greed != null){
             int ingotRequirement = getIngotRequirement(slotType);
@@ -128,10 +131,10 @@ public class GreedHelper {
             }
             int ingotsFound = 0;
             List<ItemStack> usedStacks = new ArrayList<>();
-            for(int slotIndex = 0; slotIndex < greed.getGreedInventory().getSizeInventory(); slotIndex++){
-                ItemStack stackFromSlot = greed.getGreedInventory().getStackInSlot(slotIndex);
+            for(int slotIndex = 0; slotIndex < greed.getGreedInventory().getContainerSize(); slotIndex++){
+                ItemStack stackFromSlot = greed.getGreedInventory().getItem(slotIndex);
                 // If the found stack is a gold ingot
-                if(stackFromSlot.getItem().isIn(Tags.Items.INGOTS_GOLD) && !stackFromSlot.isEmpty()){
+                if(stackFromSlot.is(Tags.Items.INGOTS_GOLD) && !stackFromSlot.isEmpty()){
                     for(int i = 1; i <= stackFromSlot.getCount(); i++){
                         // split 1 off from the stack and add it to usedStacks
                         usedStacks.add(stackFromSlot.split(1));
@@ -160,7 +163,7 @@ public class GreedHelper {
         return ItemStack.EMPTY;
     }
 
-    public static void checkCraftEquipment(PiglinEntity piglinEntity){
+    public static void checkCraftEquipment(Piglin piglinEntity){
         IGreed greed = getGreedCapability(piglinEntity);
         if(greed != null){
             if (!greed.getGreedInventory().isEmpty()) {
@@ -171,19 +174,19 @@ public class GreedHelper {
                 boolean didCraft = false;
 
                 // Check each equipment slot for an item
-                for (EquipmentSlotType slot : EquipmentSlotType.values()) {
+                for (EquipmentSlot slot : EquipmentSlot.values()) {
                     // for now, skip offhand equipment check
-                    if(slot == EquipmentSlotType.OFFHAND){
+                    if(slot == EquipmentSlot.OFFHAND){
                         continue;
                     }
 
-                    ItemStack stackFromSlot = piglinEntity.getItemStackFromSlot(slot);
+                    ItemStack stackFromSlot = piglinEntity.getItemBySlot(slot);
                     // Skip to the next slot if an item was found in the slot
                     if (!stackFromSlot.isEmpty()) {
                         // If the slot is occupied by armor
                         boolean isValidEquipment = SapienceConfig.COMMON.PIGLINS_PREFER_CRAFTED_EQUIPMENT.get() ?
                                 isGoldArmorOrWeapon(stackFromSlot) : isArmorOrWeapon(stackFromSlot);
-                        boolean isCrossbow = stackFromSlot.isCrossbowStack();
+                        boolean isCrossbow = stackFromSlot.useOnRelease();
                         if (isValidEquipment || isCrossbow){
                             heldEquipmentAmount++;
                         }
@@ -225,28 +228,28 @@ public class GreedHelper {
 
     private static boolean isGoldArmorOrWeapon(ItemStack stack){
         if(stack.getItem() instanceof ArmorItem){
-            return ((ArmorItem) stack.getItem()).getArmorMaterial() == ArmorMaterial.GOLD;
+            return ((ArmorItem) stack.getItem()).getMaterial() == ArmorMaterials.GOLD;
         }
         else if(stack.getItem() instanceof TieredItem){
-            return ((TieredItem) stack.getItem()).getTier() == ItemTier.GOLD;
+            return ((TieredItem) stack.getItem()).getTier() == Tiers.GOLD;
         }
         else return false;
     }
 
-    public static ItemStack addGreedItemToGreedInventory(MobEntity mobEntity, ItemStack stackToAdd, boolean didBarter) {
+    public static ItemStack addGreedItemToGreedInventory(Mob mobEntity, ItemStack stackToAdd, boolean didBarter) {
         IGreed greed = getGreedCapability(mobEntity);
         if(greed != null){
             if(!stackToAdd.isEmpty()){
-                Inventory greedInventory = greed.getGreedInventory();
-                if (stackToAdd.getItem().isIn(Tags.Items.INGOTS_GOLD)){
+                SimpleContainer greedInventory = greed.getGreedInventory();
+                if (stackToAdd.is(Tags.Items.INGOTS_GOLD)){
                     return addStackToGreedInventoryCheckBartered(mobEntity, stackToAdd, didBarter);
                 }
-                else if (stackToAdd.getItem().isIn(Tags.Items.STORAGE_BLOCKS_GOLD)) {
+                else if (stackToAdd.is(Tags.Items.STORAGE_BLOCKS_GOLD)) {
                     int blockCount = stackToAdd.getCount();
                     ItemStack blocksToIngotsStack = new ItemStack(Items.GOLD_INGOT, blockCount * 9);
                     blocksToIngotsStack.setTag(stackToAdd.getTag());
                     return addStackToGreedInventoryCheckBartered(mobEntity, blocksToIngotsStack, didBarter);
-                } else if (stackToAdd.getItem().isIn(Tags.Items.NUGGETS_GOLD)){
+                } else if (stackToAdd.is(Tags.Items.NUGGETS_GOLD)){
                     return addGoldNuggetsToGreedInventory(mobEntity, stackToAdd, greedInventory, didBarter);
                 }
                 else{
@@ -260,7 +263,7 @@ public class GreedHelper {
         return ItemStack.EMPTY;
     }
 
-    private static ItemStack addGoldNuggetsToGreedInventory(MobEntity mobEntity, ItemStack stackToAdd, Inventory greedInventory, boolean didBarter) {
+    private static ItemStack addGoldNuggetsToGreedInventory(Mob mobEntity, ItemStack stackToAdd, SimpleContainer greedInventory, boolean didBarter) {
         int nuggetCount = stackToAdd.getCount();
         boolean canAutoMerge = nuggetCount % 9 == 0;
         if(canAutoMerge){
@@ -269,15 +272,15 @@ public class GreedHelper {
             return addStackToGreedInventoryCheckBartered(mobEntity, goldIngotStack, didBarter);
         }
         else{
-            for(int slotIndex = 0; slotIndex < greedInventory.getSizeInventory(); slotIndex++){
-                ItemStack stackInSlot = greedInventory.getStackInSlot(slotIndex);
-                if(stackInSlot.getItem().isIn(Tags.Items.NUGGETS_GOLD) && stackInSlot.getCount() + nuggetCount <= stackInSlot.getMaxStackSize()){
+            for(int slotIndex = 0; slotIndex < greedInventory.getContainerSize(); slotIndex++){
+                ItemStack stackInSlot = greedInventory.getItem(slotIndex);
+                if(stackInSlot.is(Tags.Items.NUGGETS_GOLD) && stackInSlot.getCount() + nuggetCount <= stackInSlot.getMaxStackSize()){
                     stackToAdd.shrink(nuggetCount);
                     stackInSlot.grow(nuggetCount);
                     if(stackInSlot.getCount() % 9 == 0){
                         ItemStack goldIngotStack = new ItemStack(Items.GOLD_INGOT, nuggetCount / 9);
                         goldIngotStack.setTag(stackToAdd.getTag());
-                        greedInventory.setInventorySlotContents(slotIndex, goldIngotStack);
+                        greedInventory.setItem(slotIndex, goldIngotStack);
                         break;
                     }
                     if(stackToAdd.isEmpty()){
@@ -289,11 +292,11 @@ public class GreedHelper {
         }
     }
 
-    public static ItemStack addStackToGreedInventoryCheckBartered(MobEntity mobEntity, ItemStack stack, boolean didBarter){
+    public static ItemStack addStackToGreedInventoryCheckBartered(Mob mobEntity, ItemStack stack, boolean didBarter){
         IGreed greed = getGreedCapability(mobEntity);
         if(greed != null){
             if (didBarter) {
-                CompoundNBT compoundNBT = stack.getOrCreateTag();
+                CompoundTag compoundNBT = stack.getOrCreateTag();
                 compoundNBT.putBoolean(GreedHelper.BARTERED, true);
             }
             return greed.getGreedInventory().addItem(stack);
@@ -303,17 +306,17 @@ public class GreedHelper {
 
     public static Set<Item> getDesiredItems(LivingEntity ally) {
         Set<Item> desiredItems = new HashSet<>();
-        for(EquipmentSlotType slotType : EquipmentSlotType.values()){
-            if(slotType == EquipmentSlotType.OFFHAND){
+        for(EquipmentSlot slotType : EquipmentSlot.values()){
+            if(slotType == EquipmentSlot.OFFHAND){
                 continue;
             }
             int ingotRequirement = getIngotRequirement(slotType);
             ItemStack desiredItemStack = getEquipmentForIngotCount(ingotRequirement);
             Item desiredItem = desiredItemStack.getItem();
-            ItemStack stackFromSlot = ally.getItemStackFromSlot(slotType);
+            ItemStack stackFromSlot = ally.getItemBySlot(slotType);
 
             if(!stackFromSlot.isEmpty()){
-                boolean isCrossbow =  stackFromSlot.isCrossbowStack();
+                boolean isCrossbow =  stackFromSlot.useOnRelease();
                 boolean isValidEquipment = SapienceConfig.COMMON.PIGLINS_PREFER_CRAFTED_EQUIPMENT.get() ?
                         isGoldArmorOrWeapon(stackFromSlot) : isArmorOrWeapon(stackFromSlot);
 
@@ -330,15 +333,15 @@ public class GreedHelper {
         return desiredItems;
     }
 
-    public static void giveAllyDesiredItem(Set<Item> allyDesiredItems, PiglinEntity owner, PiglinEntity ally) {
+    public static void giveAllyDesiredItem(Set<Item> allyDesiredItems, Piglin owner, Piglin ally) {
         if(!allyDesiredItems.isEmpty()){
             Item desiredItem = null;
             for(Item item: allyDesiredItems) {
                 desiredItem = item;
                 break;
             }
-            EquipmentSlotType slotType = getSlotForItem(desiredItem);
-            if(slotType != EquipmentSlotType.OFFHAND){
+            EquipmentSlot slotType = getSlotForItem(desiredItem);
+            if(slotType != EquipmentSlot.OFFHAND){
                 ItemStack craftedItem = craftArmorFromGreedInventory(owner, slotType);
                 if(!craftedItem.isEmpty()){
                     GreedHelper.checkCraftEquipment(owner);
@@ -348,13 +351,13 @@ public class GreedHelper {
                         ally.entityDropItem(dropStack);
                     }
                      */
-                    owner.swingArm(Hand.OFF_HAND);
+                    owner.swing(InteractionHand.OFF_HAND);
                     //ally.swingArm(Hand.OFF_HAND);
                     //ally.setItemStackToSlot(slotType, craftedItem);
                     PiglinTasksHelper.dropOffhandItemAndSetItemStackToOffhand(ally, craftedItem);
                     PiglinTasksHelper.setAdmiringItem(ally);
                     PiglinTasksHelper.clearWalkPath(ally);
-                    ally.world.setEntityState(ally, (byte) GeneralHelper.ACCEPT_ID);
+                    ally.level.broadcastEntityEvent(ally, (byte) GeneralHelper.ACCEPT_ID);
                     allyDesiredItems.remove(desiredItem);
                 }
             }

@@ -3,96 +3,96 @@ package com.infamous.sapience.tasks;
 import com.google.common.collect.ImmutableMap;
 import com.infamous.sapience.mod.ModMemoryModuleTypes;
 import com.infamous.sapience.util.AgeableHelper;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.MobEntity;
-import net.minecraft.entity.ai.brain.Brain;
-import net.minecraft.entity.ai.brain.BrainUtil;
-import net.minecraft.entity.ai.brain.memory.MemoryModuleStatus;
-import net.minecraft.entity.ai.brain.memory.MemoryModuleType;
-import net.minecraft.entity.ai.brain.task.Task;
-import net.minecraft.world.server.ServerWorld;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.ai.Brain;
+import net.minecraft.world.entity.ai.behavior.BehaviorUtils;
+import net.minecraft.world.entity.ai.memory.MemoryStatus;
+import net.minecraft.world.entity.ai.memory.MemoryModuleType;
+import net.minecraft.world.entity.ai.behavior.Behavior;
+import net.minecraft.server.level.ServerLevel;
 
 import java.util.Optional;
 
-public class CreateBabyTask<T extends MobEntity> extends Task<T> {
+public class CreateBabyTask<T extends Mob> extends Behavior<T> {
     private long duration;
 
     public CreateBabyTask() {
         super(ImmutableMap.of(
                 ModMemoryModuleTypes.BREEDING_TARGET.get(),
-                MemoryModuleStatus.VALUE_PRESENT,
-                MemoryModuleType.VISIBLE_MOBS,
-                MemoryModuleStatus.VALUE_PRESENT),
+                MemoryStatus.VALUE_PRESENT,
+                MemoryModuleType.VISIBLE_LIVING_ENTITIES,
+                MemoryStatus.VALUE_PRESENT),
                 350, 350);
     }
 
     @Override
-    protected boolean shouldExecute(ServerWorld worldIn, T owner) {
+    protected boolean checkExtraStartConditions(ServerLevel worldIn, T owner) {
         return this.canBreed(owner);
     }
 
     @Override
-    protected boolean shouldContinueExecuting(ServerWorld worldIn, T entityIn, long gameTimeIn) {
+    protected boolean canStillUse(ServerLevel worldIn, T entityIn, long gameTimeIn) {
         return gameTimeIn <= this.duration && this.canBreed(entityIn);
     }
 
-    private boolean canBreed(MobEntity owner) {
+    private boolean canBreed(Mob owner) {
         Brain<?> brain = owner.getBrain();
         EntityType<?> ownerEntityType = owner.getType();
-        Optional<MobEntity> breedingTarget =
+        Optional<Mob> breedingTarget =
                 brain.getMemory(ModMemoryModuleTypes.BREEDING_TARGET.get())
                         .filter((breedTarget) -> breedTarget.getType() == ownerEntityType);
         // CAPABILITY
         return breedingTarget.filter(partner -> AgeableHelper.canPartnersBreed(owner, partner)).isPresent()
-                && BrainUtil.isCorrectVisibleType(brain, ModMemoryModuleTypes.BREEDING_TARGET.get(), ownerEntityType);
+                && BehaviorUtils.targetIsValid(brain, ModMemoryModuleTypes.BREEDING_TARGET.get(), ownerEntityType);
     }
 
     @Override
-    protected void startExecuting(ServerWorld worldIn, T entityIn, long gameTimeIn) {
+    protected void start(ServerLevel worldIn, T entityIn, long gameTimeIn) {
         if(entityIn.getBrain().getMemory(ModMemoryModuleTypes.BREEDING_TARGET.get()).isPresent()){
-            MobEntity breedTarget = entityIn.getBrain().getMemory(ModMemoryModuleTypes.BREEDING_TARGET.get()).get();
+            Mob breedTarget = entityIn.getBrain().getMemory(ModMemoryModuleTypes.BREEDING_TARGET.get()).get();
 
-            BrainUtil.lookApproachEachOther(entityIn, breedTarget, 0.5F);
-            worldIn.setEntityState(breedTarget, (byte) AgeableHelper.BREEDING_ID);
-            worldIn.setEntityState(entityIn, (byte) AgeableHelper.BREEDING_ID);
+            BehaviorUtils.lockGazeAndWalkToEachOther(entityIn, breedTarget, 0.5F);
+            worldIn.broadcastEntityEvent(breedTarget, (byte) AgeableHelper.BREEDING_ID);
+            worldIn.broadcastEntityEvent(entityIn, (byte) AgeableHelper.BREEDING_ID);
             //
-            int i = 275 + entityIn.getRNG().nextInt(50);
+            int i = 275 + entityIn.getRandom().nextInt(50);
             this.duration = gameTimeIn + (long)i;
         }
     }
 
     @Override
-    protected void updateTask(ServerWorld worldIn, T owner, long gameTime) {
+    protected void tick(ServerLevel worldIn, T owner, long gameTime) {
         if(owner.getBrain().getMemory(ModMemoryModuleTypes.BREEDING_TARGET.get()).isPresent()){
             //OhGrowUp.LOGGER.info("Updating CreateBabyTask!");
-            MobEntity breedTarget = owner.getBrain().getMemory(ModMemoryModuleTypes.BREEDING_TARGET.get()).get();
-            if (owner.getDistanceSq(breedTarget) <= 5.0D) {
-                BrainUtil.lookApproachEachOther(owner, breedTarget, 0.5F);
+            Mob breedTarget = owner.getBrain().getMemory(ModMemoryModuleTypes.BREEDING_TARGET.get()).get();
+            if (owner.distanceToSqr(breedTarget) <= 5.0D) {
+                BehaviorUtils.lockGazeAndWalkToEachOther(owner, breedTarget, 0.5F);
                 if (gameTime >= this.duration) {
                     // CAPABILITY
                     AgeableHelper.depleteParentsFoodValue(owner, breedTarget);
                     this.createChild(worldIn, owner, breedTarget);
-                } else if(owner.getRNG().nextInt(35) == 0){
-                    worldIn.setEntityState(breedTarget, (byte) AgeableHelper.BREEDING_ID);
-                    worldIn.setEntityState(owner, (byte) AgeableHelper.BREEDING_ID);
+                } else if(owner.getRandom().nextInt(35) == 0){
+                    worldIn.broadcastEntityEvent(breedTarget, (byte) AgeableHelper.BREEDING_ID);
+                    worldIn.broadcastEntityEvent(owner, (byte) AgeableHelper.BREEDING_ID);
                 }
             }
         }
     }
 
-    private void createChild(ServerWorld world, MobEntity parent, MobEntity partner) {
-        MobEntity child = AgeableHelper.createChild(world, parent, partner);
+    private void createChild(ServerLevel world, Mob parent, Mob partner) {
+        Mob child = AgeableHelper.createChild(world, parent, partner);
         if (child != null) {
             // CAPABILITY
             AgeableHelper.setParentsOnBreedCooldown(parent, partner);
-            child.setLocationAndAngles(parent.getPosX(), parent.getPosY(), parent.getPosZ(), 0.0F, 0.0F);
-            world.func_242417_l(child);
-            world.setEntityState(child, (byte) AgeableHelper.BREEDING_ID);
+            child.moveTo(parent.getX(), parent.getY(), parent.getZ(), 0.0F, 0.0F);
+            world.addFreshEntityWithPassengers(child);
+            world.broadcastEntityEvent(child, (byte) AgeableHelper.BREEDING_ID);
         }
     }
 
-    protected void resetTask(ServerWorld worldIn, T entityIn, long gameTimeIn) {
-        entityIn.getBrain().removeMemory(ModMemoryModuleTypes.BREEDING_TARGET.get());
+    protected void stop(ServerLevel worldIn, T entityIn, long gameTimeIn) {
+        entityIn.getBrain().eraseMemory(ModMemoryModuleTypes.BREEDING_TARGET.get());
     }
 
 }

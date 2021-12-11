@@ -1,7 +1,7 @@
 package com.infamous.sapience.capability.greed;
 
-import net.minecraft.nbt.INBT;
-import net.minecraft.util.Direction;
+import net.minecraft.nbt.Tag;
+import net.minecraft.core.Direction;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.capabilities.CapabilityInject;
 import net.minecraftforge.common.capabilities.ICapabilitySerializable;
@@ -10,7 +10,7 @@ import net.minecraftforge.common.util.LazyOptional;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-public class GreedProvider implements ICapabilitySerializable<INBT> {
+public class GreedProvider implements ICapabilitySerializable<Tag> {
 
     @CapabilityInject(IGreed.class)
     public static final Capability<IGreed> GREED_CAPABILITY = null;
@@ -23,12 +23,12 @@ public class GreedProvider implements ICapabilitySerializable<INBT> {
         return cap == GREED_CAPABILITY ? instance.cast() : LazyOptional.empty();    }
 
     @Override
-    public INBT serializeNBT() {
+    public Tag serializeNBT() {
         return GREED_CAPABILITY.getStorage().writeNBT(GREED_CAPABILITY, this.instance.orElseThrow(() -> new IllegalArgumentException("LazyOptional must not be empty!")), null);
     }
 
     @Override
-    public void deserializeNBT(INBT nbt) {
+    public void deserializeNBT(Tag nbt) {
         GREED_CAPABILITY.getStorage().readNBT(GREED_CAPABILITY, this.instance.orElseThrow(() -> new IllegalArgumentException("LazyOptional must not be empty!")), null, nbt);
     }
 }

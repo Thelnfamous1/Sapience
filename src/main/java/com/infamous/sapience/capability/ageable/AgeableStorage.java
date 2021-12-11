@@ -1,8 +1,8 @@
 package com.infamous.sapience.capability.ageable;
 
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.nbt.INBT;
-import net.minecraft.util.Direction;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.Tag;
+import net.minecraft.core.Direction;
 import net.minecraftforge.common.capabilities.Capability;
 
 import javax.annotation.Nullable;
@@ -11,8 +11,8 @@ public class AgeableStorage implements Capability.IStorage<IAgeable> {
 
     @Nullable
     @Override
-    public INBT writeNBT(Capability<IAgeable> capability, IAgeable instance, Direction side) {
-        CompoundNBT tag = new CompoundNBT();
+    public Tag writeNBT(Capability<IAgeable> capability, IAgeable instance, Direction side) {
+        CompoundTag tag = new CompoundTag();
         tag.putInt("Age", instance.getGrowingAge());
         tag.putInt("ForcedAge", instance.getForcedAge());
         tag.putBoolean("WasBorn", instance.wasBorn());
@@ -23,8 +23,8 @@ public class AgeableStorage implements Capability.IStorage<IAgeable> {
     }
 
     @Override
-    public void readNBT(Capability<IAgeable> capability, IAgeable instance, Direction side, INBT nbt) {
-        CompoundNBT tag = (CompoundNBT) nbt;
+    public void readNBT(Capability<IAgeable> capability, IAgeable instance, Direction side, Tag nbt) {
+        CompoundTag tag = (CompoundTag) nbt;
         instance.setGrowingAge(tag.getInt("Age"));
         instance.setForcedAge(tag.getInt("ForcedAge"));
         instance.setBorn(tag.getBoolean("WasBorn"));

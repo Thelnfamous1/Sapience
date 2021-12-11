@@ -2,24 +2,25 @@ package com.infamous.sapience.util;
 
 import com.google.common.collect.ImmutableList;
 import com.infamous.sapience.Sapience;
-import net.minecraft.entity.ai.brain.Brain;
-import net.minecraft.entity.ai.brain.memory.MemoryModuleType;
-import net.minecraft.entity.ai.brain.schedule.Activity;
-import net.minecraft.entity.ai.brain.task.LookTask;
-import net.minecraft.entity.ai.brain.task.PickupWantedItemTask;
-import net.minecraft.entity.ai.brain.task.Task;
-import net.minecraft.entity.ai.brain.task.WalkToTargetTask;
-import net.minecraft.entity.item.ItemEntity;
-import net.minecraft.entity.monster.HoglinEntity;
-import net.minecraft.entity.passive.AnimalEntity;
-import net.minecraft.item.BlockItem;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.ai.Brain;
+import net.minecraft.world.entity.ai.memory.MemoryModuleType;
+import net.minecraft.world.entity.schedule.Activity;
+import net.minecraft.world.entity.ai.behavior.LookAtTargetSink;
+import net.minecraft.world.entity.ai.behavior.GoToWantedItem;
+import net.minecraft.world.entity.ai.behavior.Behavior;
+import net.minecraft.world.entity.ai.behavior.MoveToTargetSink;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.entity.monster.hoglin.Hoglin;
+import net.minecraft.world.entity.animal.Animal;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.tags.ItemTags;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.world.World;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.level.Level;
 import net.minecraftforge.common.Tags;
 
 public class HoglinTasksHelper {
@@ -27,37 +28,37 @@ public class HoglinTasksHelper {
     public static final int GROWING_ID = 12;
     public static final int BREEDING_ID = 18;
 
-    private static boolean hasNearestRepllentMemory(HoglinEntity hoglinEntity) {
-        return hoglinEntity.getBrain().hasMemory(MemoryModuleType.NEAREST_REPELLENT);
+    private static boolean hasNearestRepllentMemory(Hoglin hoglinEntity) {
+        return hoglinEntity.getBrain().hasMemoryValue(MemoryModuleType.NEAREST_REPELLENT);
     }
 
-    private static boolean hasBreedTargetMemory(HoglinEntity hoglinEntity) {
-        return hoglinEntity.getBrain().hasMemory(MemoryModuleType.BREED_TARGET);
+    private static boolean hasBreedTargetMemory(Hoglin hoglinEntity) {
+        return hoglinEntity.getBrain().hasMemoryValue(MemoryModuleType.BREED_TARGET);
     }
 
-    protected static boolean hasPacifiedMemory(HoglinEntity hoglinEntity) {
-        return hoglinEntity.getBrain().hasMemory(MemoryModuleType.PACIFIED);
+    protected static boolean hasPacifiedMemory(Hoglin hoglinEntity) {
+        return hoglinEntity.getBrain().hasMemoryValue(MemoryModuleType.PACIFIED);
     }
 
-    public static void registerCoreTasks(Brain<HoglinEntity> hoglinEntityBrain) {
-        hoglinEntityBrain.registerActivity(Activity.CORE, 0, getCoreTasks());
+    public static void registerCoreTasks(Brain<Hoglin> hoglinEntityBrain) {
+        hoglinEntityBrain.addActivity(Activity.CORE, 0, getCoreTasks());
     }
 
-    private static ImmutableList<Task<? super HoglinEntity>> getCoreTasks(){
+    private static ImmutableList<Behavior<? super Hoglin>> getCoreTasks(){
         return ImmutableList.of(
-                new LookTask(45, 90),
-                new WalkToTargetTask(),
-                new PickupWantedItemTask<>(1.0F, true, 9));
+                new LookAtTargetSink(45, 90),
+                new MoveToTargetSink(),
+                new GoToWantedItem<>(1.0F, true, 9));
     }
 
-    public static boolean canPickUpItemStack(AnimalEntity animalEntity, ItemStack itemStack) {
+    public static boolean canPickUpItemStack(Animal animalEntity, ItemStack itemStack) {
         Item item = itemStack.getItem();
-        if (item instanceof BlockItem && ((BlockItem) item).getBlock().isIn(BlockTags.HOGLIN_REPELLENTS)) {
+        if (item instanceof BlockItem && ((BlockItem) item).getBlock().is(BlockTags.HOGLIN_REPELLENTS)) {
             return false;
-        } else if (animalEntity.getBrain().hasMemory(MemoryModuleType.ATTACK_TARGET)) {
+        } else if (animalEntity.getBrain().hasMemoryValue(MemoryModuleType.ATTACK_TARGET)) {
             return false;
         } else {
-            if (item.isIn(HoglinTasksHelper.HOGLIN_FOOD_ITEMS)) {
+            if (item.is(HoglinTasksHelper.HOGLIN_FOOD_ITEMS)) {
                 return !hasAteRecently(animalEntity);
             }
             else{
@@ -66,38 +67,38 @@ public class HoglinTasksHelper {
         }
     }
 
-    public static void pickUpBreedingItem(AnimalEntity animalEntity, ItemEntity itemEntity) {
-        animalEntity.onItemPickup(itemEntity, 1);
+    public static void pickUpBreedingItem(Animal animalEntity, ItemEntity itemEntity) {
+        animalEntity.take(itemEntity, 1);
         ItemStack temptationStack = itemEntity.getItem();
         ItemStack pickupStack = temptationStack.split(1);
         if(temptationStack.isEmpty()){
-            itemEntity.remove();
+            itemEntity.remove(Entity.RemovalReason.DISCARDED);
         } else {
             itemEntity.setItem(temptationStack);
         }
         if(!hasAteRecently(animalEntity)){
             setAteRecently(animalEntity);
         }
-        int growingAge = animalEntity.getGrowingAge();
-        World animalWorld = animalEntity.world;
-        if(!animalWorld.isRemote && growingAge == 0 && !animalEntity.isInLove()){
+        int growingAge = animalEntity.getAge();
+        Level animalWorld = animalEntity.level;
+        if(!animalWorld.isClientSide && growingAge == 0 && !animalEntity.isInLove()){
             animalEntity.setInLove(null);
         }
-        else if(!animalWorld.isRemote && animalEntity.isChild()){
+        else if(!animalWorld.isClientSide && animalEntity.isBaby()){
             animalEntity.ageUp((int)((float)(-growingAge / 20) * 0.1F), true);
             //animalWorld.setEntityState(animalEntity, (byte) HoglinTasksHelper.GROWING_ID);
         }
     }
 
-    private static boolean hasAteRecently(AnimalEntity animalEntity) {
-        return animalEntity.getBrain().hasMemory(MemoryModuleType.ATE_RECENTLY);
+    private static boolean hasAteRecently(Animal animalEntity) {
+        return animalEntity.getBrain().hasMemoryValue(MemoryModuleType.ATE_RECENTLY);
     }
 
     public static boolean isHoglinFoodItem(Item item){
-        return item.isIn(HoglinTasksHelper.HOGLIN_FOOD_ITEMS) || item == Items.CRIMSON_FUNGUS;
+        return item.is(HoglinTasksHelper.HOGLIN_FOOD_ITEMS) || item == Items.CRIMSON_FUNGUS;
     }
 
-    public static void setAteRecently(AnimalEntity animalEntity) {
-        animalEntity.getBrain().replaceMemory(MemoryModuleType.ATE_RECENTLY, true, 200L);
+    public static void setAteRecently(Animal animalEntity) {
+        animalEntity.getBrain().setMemoryWithExpiry(MemoryModuleType.ATE_RECENTLY, true, 200L);
     }
 }

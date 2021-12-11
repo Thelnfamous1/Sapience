@@ -5,37 +5,37 @@ import com.google.common.collect.ImmutableSet;
 import com.infamous.sapience.util.GreedHelper;
 import com.infamous.sapience.util.PiglinTasksHelper;
 import com.infamous.sapience.util.ReputationHelper;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.ai.brain.BrainUtil;
-import net.minecraft.entity.ai.brain.memory.MemoryModuleStatus;
-import net.minecraft.entity.ai.brain.memory.MemoryModuleType;
-import net.minecraft.entity.ai.brain.task.Task;
-import net.minecraft.entity.monster.piglin.PiglinEntity;
-import net.minecraft.item.Item;
-import net.minecraft.world.server.ServerWorld;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.ai.behavior.BehaviorUtils;
+import net.minecraft.world.entity.ai.memory.MemoryStatus;
+import net.minecraft.world.entity.ai.memory.MemoryModuleType;
+import net.minecraft.world.entity.ai.behavior.Behavior;
+import net.minecraft.world.entity.monster.piglin.Piglin;
+import net.minecraft.world.item.Item;
+import net.minecraft.server.level.ServerLevel;
 
 import java.util.Set;
 
-public class ShareGoldTask<T extends PiglinEntity> extends Task<T> {
+public class ShareGoldTask<T extends Piglin> extends Behavior<T> {
     private Set<Item> allyDesiredItems = ImmutableSet.of();
 
     public ShareGoldTask() {
         super(ImmutableMap.of(
-                MemoryModuleType.INTERACTION_TARGET, MemoryModuleStatus.VALUE_PRESENT,
-                MemoryModuleType.VISIBLE_MOBS, MemoryModuleStatus.VALUE_PRESENT));
+                MemoryModuleType.INTERACTION_TARGET, MemoryStatus.VALUE_PRESENT,
+                MemoryModuleType.VISIBLE_LIVING_ENTITIES, MemoryStatus.VALUE_PRESENT));
     }
 
-    protected boolean shouldExecute(ServerWorld serverWorld, T owner) {
+    protected boolean checkExtraStartConditions(ServerLevel serverWorld, T owner) {
         EntityType<?> entityType = owner.getType();
         boolean isSharingGold = GreedHelper.isSharingGold(owner);
         boolean hasGold = GreedHelper.doesGreedInventoryHaveGold(owner);
-        boolean ownerIsAdult = !owner.isChild();
+        boolean ownerIsAdult = !owner.isBaby();
 
         boolean hasOpenOffhandSlot = true;
         if(owner.getBrain().getMemory(MemoryModuleType.INTERACTION_TARGET).isPresent()) {
             LivingEntity ally = (LivingEntity) owner.getBrain().getMemory(MemoryModuleType.INTERACTION_TARGET).get();
-            if(ally instanceof PiglinEntity && !PiglinTasksHelper.hasOpenOffhandSlot((PiglinEntity) ally)){
+            if(ally instanceof Piglin && !PiglinTasksHelper.hasOpenOffhandSlot((Piglin) ally)){
                 hasOpenOffhandSlot = false;
             }
         }
@@ -43,36 +43,36 @@ public class ShareGoldTask<T extends PiglinEntity> extends Task<T> {
                 && hasGold
                 && ownerIsAdult
                 && hasOpenOffhandSlot
-                && BrainUtil.isCorrectVisibleType(owner.getBrain(), MemoryModuleType.INTERACTION_TARGET, entityType);
+                && BehaviorUtils.targetIsValid(owner.getBrain(), MemoryModuleType.INTERACTION_TARGET, entityType);
     }
 
-    protected boolean shouldContinueExecuting(ServerWorld serverWorld, T owner, long gameTime) {
-        return this.shouldExecute(serverWorld, owner);
+    protected boolean canStillUse(ServerLevel serverWorld, T owner, long gameTime) {
+        return this.checkExtraStartConditions(serverWorld, owner);
     }
 
-    protected void startExecuting(ServerWorld serverWorld, T owner, long gameTime) {
+    protected void start(ServerLevel serverWorld, T owner, long gameTime) {
         if(owner.getBrain().getMemory(MemoryModuleType.INTERACTION_TARGET).isPresent()){
             LivingEntity ally = (LivingEntity)owner.getBrain().getMemory(MemoryModuleType.INTERACTION_TARGET).get();
-            BrainUtil.lookApproachEachOther(owner, ally, 0.5F);
+            BehaviorUtils.lockGazeAndWalkToEachOther(owner, ally, 0.5F);
             this.allyDesiredItems = GreedHelper.getDesiredItems(ally);
         }
     }
 
-    protected void updateTask(ServerWorld serverWorld, T owner, long gameTime) {
+    protected void tick(ServerLevel serverWorld, T owner, long gameTime) {
         if(owner.getBrain().getMemory(MemoryModuleType.INTERACTION_TARGET).isPresent()){
             LivingEntity ally = (LivingEntity)owner.getBrain().getMemory(MemoryModuleType.INTERACTION_TARGET).get();
-            if (owner.getDistanceSq(ally) <= 5.0D) {
-                BrainUtil.lookApproachEachOther(owner, ally, 0.5F);
+            if (owner.distanceToSqr(ally) <= 5.0D) {
+                BehaviorUtils.lockGazeAndWalkToEachOther(owner, ally, 0.5F);
                 ReputationHelper.spreadGossip(owner, ally, gameTime); // mimics what villagers do in ShareItemsTask
-                if (!this.allyDesiredItems.isEmpty() && ally instanceof PiglinEntity) {
-                    GreedHelper.giveAllyDesiredItem(this.allyDesiredItems, owner, (PiglinEntity) ally);
+                if (!this.allyDesiredItems.isEmpty() && ally instanceof Piglin) {
+                    GreedHelper.giveAllyDesiredItem(this.allyDesiredItems, owner, (Piglin) ally);
                 }
             }
         }
     }
 
-    protected void resetTask(ServerWorld serverWorld, T owner, long gameTime) {
-        owner.getBrain().removeMemory(MemoryModuleType.INTERACTION_TARGET);
+    protected void stop(ServerLevel serverWorld, T owner, long gameTime) {
+        owner.getBrain().eraseMemory(MemoryModuleType.INTERACTION_TARGET);
     }
 
 }

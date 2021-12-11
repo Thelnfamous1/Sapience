@@ -9,15 +9,15 @@ import com.infamous.sapience.util.PiglinReputationType;
 import com.infamous.sapience.util.AgeableHelper;
 import com.infamous.sapience.util.PiglinTasksHelper;
 import com.infamous.sapience.util.ReputationHelper;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.boss.WitherEntity;
-import net.minecraft.entity.merchant.IReputationTracking;
-import net.minecraft.entity.monster.WitherSkeletonEntity;
-import net.minecraft.entity.monster.piglin.PiglinBruteEntity;
-import net.minecraft.entity.monster.piglin.PiglinEntity;
-import net.minecraft.util.Hand;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.world.server.ServerWorld;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.boss.wither.WitherBoss;
+import net.minecraft.world.entity.ReputationEventHandler;
+import net.minecraft.world.entity.monster.WitherSkeleton;
+import net.minecraft.world.entity.monster.piglin.PiglinBrute;
+import net.minecraft.world.entity.monster.piglin.Piglin;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraftforge.event.AttachCapabilitiesEvent;
 import net.minecraftforge.event.entity.EntityJoinWorldEvent;
 import net.minecraftforge.event.entity.living.LivingAttackEvent;
@@ -30,7 +30,7 @@ import net.minecraftforge.fml.common.Mod;
 public class EventHandler {
     @SubscribeEvent
     public static void onAttachEntityCapabilities(AttachCapabilitiesEvent<Entity> event) {
-        if (event.getObject() instanceof PiglinEntity) {
+        if (event.getObject() instanceof Piglin) {
             event.addCapability(new ResourceLocation(Sapience.MODID, "ageable"), new AgeableProvider());
             event.addCapability(new ResourceLocation(Sapience.MODID, "greed"), new GreedProvider());
             event.addCapability(new ResourceLocation(Sapience.MODID, "reputation"), new ReputationProvider());
@@ -42,15 +42,15 @@ public class EventHandler {
     // This is strictly for initializing the Ageable capability for naturally spawning baby piglins
     @SubscribeEvent
     public static void onPiglinSpawn(EntityJoinWorldEvent event){
-        if(event.getEntity() instanceof PiglinEntity && !event.getWorld().isRemote){
-            PiglinEntity piglinEntity = (PiglinEntity)event.getEntity();
+        if(event.getEntity() instanceof Piglin && !event.getWorld().isClientSide){
+            Piglin piglinEntity = (Piglin)event.getEntity();
                 // Manually setting the piglin's growing age to -24000
                 // Normally, setChild would automatically set the growing age based on the boolean given
                 // But since Piglins don't extend from AgeableEntity, we have to do it manually here
                 // We choose EntityJoinWorldEvent since this is guaranteed to work whenever the Piglin is initially spawned
                 // But we also need to set the capability's wasBorn field to true,
                 // so that the growing age is not reset when the world is loaded back up from the disk again
-            if(piglinEntity.isChild()){
+            if(piglinEntity.isBaby()){
                 AgeableHelper.initializeChild(piglinEntity);
             }
         }
@@ -59,22 +59,22 @@ public class EventHandler {
     // SERVER ONLY
     @SubscribeEvent
     public static void onLivingDeath(LivingDeathEvent event){
-        Entity murderer = event.getSource().getTrueSource();
-        if(event.getEntityLiving() instanceof PiglinEntity && murderer != null && murderer.world instanceof ServerWorld){
-            PiglinEntity piglinEntity = (PiglinEntity) event.getEntityLiving();
+        Entity murderer = event.getSource().getEntity();
+        if(event.getEntityLiving() instanceof Piglin && murderer != null && murderer.level instanceof ServerLevel){
+            Piglin piglinEntity = (Piglin) event.getEntityLiving();
             ReputationHelper.makeWitnessesOfMurder(piglinEntity, murderer,
-                    piglinEntity.isChild() ? PiglinReputationType.BABY_PIGLIN_KILLED : PiglinReputationType.ADULT_PIGLIN_KILLED);
+                    piglinEntity.isBaby() ? PiglinReputationType.BABY_PIGLIN_KILLED : PiglinReputationType.ADULT_PIGLIN_KILLED);
         }
-        else if(event.getEntityLiving() instanceof PiglinBruteEntity && murderer != null && murderer.world instanceof ServerWorld){
-            PiglinBruteEntity bruteEntity = (PiglinBruteEntity) event.getEntityLiving();
+        else if(event.getEntityLiving() instanceof PiglinBrute && murderer != null && murderer.level instanceof ServerLevel){
+            PiglinBrute bruteEntity = (PiglinBrute) event.getEntityLiving();
             ReputationHelper.makeWitnessesOfMurder(bruteEntity, murderer, PiglinReputationType.BRUTE_KILLED);
         }
-        else if(event.getEntityLiving() instanceof WitherSkeletonEntity && murderer != null && murderer.world instanceof ServerWorld){
-            WitherSkeletonEntity witherSkeletonEntity = (WitherSkeletonEntity)event.getEntityLiving();
+        else if(event.getEntityLiving() instanceof WitherSkeleton && murderer != null && murderer.level instanceof ServerLevel){
+            WitherSkeleton witherSkeletonEntity = (WitherSkeleton)event.getEntityLiving();
             ReputationHelper.makeWitnessesOfMurder(witherSkeletonEntity, murderer, PiglinReputationType.WITHER_SKELETON_KILLED);
         }
-        else if(event.getEntityLiving() instanceof WitherEntity && murderer != null && murderer.world instanceof ServerWorld){
-            WitherEntity witherEntity = (WitherEntity)event.getEntityLiving();
+        else if(event.getEntityLiving() instanceof WitherBoss && murderer != null && murderer.level instanceof ServerLevel){
+            WitherBoss witherEntity = (WitherBoss)event.getEntityLiving();
             ReputationHelper.makeWitnessesOfMurder(witherEntity, murderer, PiglinReputationType.WITHER_KILLED);
         }
     }
@@ -82,30 +82,30 @@ public class EventHandler {
     // SERVER ONLY
     @SubscribeEvent
     public static void onPiglinAttacked(LivingAttackEvent event){
-        Entity attacker = event.getSource().getTrueSource();
-        if (event.getEntityLiving() instanceof PiglinEntity
-                && event.getEntityLiving() instanceof IReputationTracking
-                && attacker != null && attacker.world instanceof ServerWorld) {
-            PiglinEntity piglinEntity = (PiglinEntity) event.getEntityLiving();
-            ((ServerWorld)attacker.world).updateReputation(
-                    piglinEntity.isChild() ? PiglinReputationType.BABY_PIGLIN_HURT : PiglinReputationType.ADULT_PIGLIN_HURT,
+        Entity attacker = event.getSource().getEntity();
+        if (event.getEntityLiving() instanceof Piglin
+                && event.getEntityLiving() instanceof ReputationEventHandler
+                && attacker != null && attacker.level instanceof ServerLevel) {
+            Piglin piglinEntity = (Piglin) event.getEntityLiving();
+            ((ServerLevel)attacker.level).onReputationEvent(
+                    piglinEntity.isBaby() ? PiglinReputationType.BABY_PIGLIN_HURT : PiglinReputationType.ADULT_PIGLIN_HURT,
                     attacker,
-                    (IReputationTracking) piglinEntity);
+                    (ReputationEventHandler) piglinEntity);
         }
     }
 
     @SubscribeEvent
     public static void onPiglinUpdate(LivingEvent.LivingUpdateEvent event){
-        if(event.getEntityLiving() instanceof PiglinEntity){
-            PiglinEntity piglinEntity = (PiglinEntity)event.getEntityLiving();
+        if(event.getEntityLiving() instanceof Piglin){
+            Piglin piglinEntity = (Piglin)event.getEntityLiving();
 
             ReputationHelper.updateGossip(piglinEntity);
 
             if(PiglinTasksHelper.hasConsumableOffhandItem(piglinEntity) // checks for food or drink
-                    && !piglinEntity.isHandActive()
+                    && !piglinEntity.isUsingItem()
                     // this additional check for a non-piglin food item allows for drinks to be consumed
-                    && (!PiglinTasksHelper.isPiglinFoodItem(piglinEntity.getHeldItemOffhand().getItem()) || !PiglinTasksHelper.hasAteRecently(piglinEntity))){
-                piglinEntity.setActiveHand(Hand.OFF_HAND);
+                    && (!PiglinTasksHelper.isPiglinFoodItem(piglinEntity.getOffhandItem().getItem()) || !PiglinTasksHelper.hasAteRecently(piglinEntity))){
+                piglinEntity.startUsingItem(InteractionHand.OFF_HAND);
             }
 
             if(piglinEntity instanceof IShakesHead){
@@ -115,7 +115,7 @@ public class EventHandler {
                 }
             }
 
-            if(!piglinEntity.world.isRemote){
+            if(!piglinEntity.level.isClientSide){
                 IAgeable ageable = AgeableHelper.getAgeableCapability(piglinEntity);
                 if(ageable != null){
                     if (piglinEntity.isAlive()) {

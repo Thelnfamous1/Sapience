@@ -1,13 +1,13 @@
 package com.infamous.sapience.capability.reputation;
 
-import net.minecraft.village.GossipManager;
+import net.minecraft.world.entity.ai.gossip.GossipContainer;
 
 import javax.annotation.Nullable;
 import java.util.UUID;
 
 public interface IReputation {
 
-    GossipManager getGossipManager();
+    GossipContainer getGossipManager();
 
     long getLastGossipTime();
 
