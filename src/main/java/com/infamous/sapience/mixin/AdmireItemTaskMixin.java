@@ -21,9 +21,9 @@ public class AdmireItemTaskMixin {
         Optional<ItemEntity> wantedItemEntity = owner.getBrain().getMemory(MemoryModuleType.NEAREST_VISIBLE_WANTED_ITEM);
         if(wantedItemEntity.isPresent()){
             ItemEntity itementity = wantedItemEntity.get();
-            boolean piglinLoved = PiglinTasksHelper.isPiglinLoved(itementity.getItem().getItem());
-            boolean piglinGreed = PiglinTasksHelper.isBarterItem(itementity.getItem().getItem());
-            boolean piglinFood = PiglinTasksHelper.isPiglinFoodItem(itementity.getItem().getItem());
+            boolean piglinLoved = PiglinTasksHelper.isPiglinLoved(itementity.getItem());
+            boolean piglinGreed = PiglinTasksHelper.isBarterItem(itementity.getItem());
+            boolean piglinFood = PiglinTasksHelper.isPiglinFoodItem(itementity.getItem());
             boolean isAdmirable = piglinLoved || piglinFood || piglinGreed;
             callbackInfoReturnable.setReturnValue(isAdmirable);
         }

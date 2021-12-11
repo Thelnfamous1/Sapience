@@ -46,8 +46,8 @@ public abstract class PiglinEntityMixin extends AbstractPiglin implements IShake
 
     @Inject(at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/monster/piglin/PiglinAi;isLovedItem(Lnet/minecraft/world/item/ItemStack;)Z"), method = "getArmPose", cancellable = true)
     private void canPiglinAdmire(CallbackInfoReturnable<PiglinArmPose> callbackInfoReturnable){
-        boolean isPiglinLoved = PiglinTasksHelper.isPiglinLoved(this.getOffhandItem().getItem());
-        boolean isPiglinGreedItem = PiglinTasksHelper.isBarterItem(this.getOffhandItem().getItem());
+        boolean isPiglinLoved = PiglinTasksHelper.isPiglinLoved(this.getOffhandItem());
+        boolean isPiglinGreedItem = PiglinTasksHelper.isBarterItem(this.getOffhandItem());
         if(isPiglinLoved || isPiglinGreedItem){
             callbackInfoReturnable.setReturnValue(PiglinArmPose.ADMIRING_ITEM);
         }
@@ -55,7 +55,7 @@ public abstract class PiglinEntityMixin extends AbstractPiglin implements IShake
 
     @Inject(at = @At(value = "HEAD"), method = "addToInventory", cancellable = true)
     private void onAddToInventory(ItemStack stack, CallbackInfoReturnable<ItemStack> callbackInfoReturnable) {
-        if(PiglinTasksHelper.isBarterItem(stack.getItem())){
+        if(PiglinTasksHelper.isBarterItem(stack)){
             CompoundTag compoundNBT = stack.getOrCreateTag();
             ItemStack remainder = GreedHelper.addGreedItemToGreedInventory(this, stack, compoundNBT.getBoolean(GreedHelper.BARTERED));
             callbackInfoReturnable.setReturnValue(remainder);
@@ -144,7 +144,7 @@ public abstract class PiglinEntityMixin extends AbstractPiglin implements IShake
                     if (!world.isClientSide && effectInstance != null && world.random.nextFloat() < effectChance) {
                         // only apply negative status effects if the item is not a piglin food
                         // we don't want piglins to get affected by Hunger if they eat a raw porkchop, for example
-                        if(effectInstance.getEffect().getCategory() != MobEffectCategory.HARMFUL || !PiglinTasksHelper.isPiglinFoodItem(item)){
+                        if(effectInstance.getEffect().getCategory() != MobEffectCategory.HARMFUL || !PiglinTasksHelper.isPiglinFoodItem(itemStack)){
                             this.addEffect(new MobEffectInstance(effectInstance));
                         }
                     }

@@ -2,25 +2,23 @@ package com.infamous.sapience.mixin;
 
 import com.infamous.sapience.SapienceConfig;
 import com.infamous.sapience.capability.ageable.IAgeable;
-import com.infamous.sapience.util.PiglinReputationType;
 import com.infamous.sapience.util.*;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.Brain;
 import net.minecraft.world.entity.ai.behavior.BehaviorUtils;
-import net.minecraft.world.entity.ai.memory.MemoryModuleType;
 import net.minecraft.world.entity.ai.behavior.RunOne;
+import net.minecraft.world.entity.ai.memory.MemoryModuleType;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.monster.piglin.AbstractPiglin;
 import net.minecraft.world.entity.monster.piglin.Piglin;
 import net.minecraft.world.entity.monster.piglin.PiglinAi;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.world.InteractionResult;
-import net.minecraft.world.InteractionHand;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -60,7 +58,7 @@ public class PiglinTasksMixin {
 
     @Inject(at = @At("HEAD"), method = "setAngerTarget")
     private static void setAngerTarget(AbstractPiglin piglinEntity, LivingEntity target, CallbackInfo callbackInfo){
-        if(PiglinTasksHelper.canTarget(target)){
+        if(piglinEntity.canAttack(target)){
             piglinEntity.level.broadcastEntityEvent(piglinEntity, (byte) GeneralHelper.ANGER_ID);
         }
     }
@@ -72,7 +70,7 @@ public class PiglinTasksMixin {
             cancellable = true)
     private static void pickUpWantedItem(Piglin piglinEntity, ItemEntity itemEntity, CallbackInfo callbackInfo){
         IAgeable ageable = AgeableHelper.getAgeableCapability(piglinEntity);
-        if(ageable != null && PiglinTasksHelper.isPiglinFoodItem(itemEntity.getItem().getItem())){
+        if(ageable != null && PiglinTasksHelper.isPiglinFoodItem(itemEntity.getItem())){
             ItemStack extractedItemStack = PiglinTasksHelper.extractSingletonFromItemEntity(itemEntity);
             // Needed to get the piglin to stop trying to pick up its food item once it's been picked up
             PiglinTasksHelper.removeTimeTryingToReachAdmireItem(piglinEntity);
@@ -91,7 +89,7 @@ public class PiglinTasksMixin {
 
     @Inject(at = @At("RETURN"), method = "isFood", cancellable = true)
     private static void isPiglinFoodItem(ItemStack item, CallbackInfoReturnable<Boolean> callbackInfoReturnable){
-        boolean isPiglinFoodItem = PiglinTasksHelper.isPiglinFoodItem(item.getItem());
+        boolean isPiglinFoodItem = PiglinTasksHelper.isPiglinFoodItem(item);
         callbackInfoReturnable.setReturnValue(isPiglinFoodItem);
     }
 
@@ -100,7 +98,7 @@ public class PiglinTasksMixin {
     private static void canPickUpItemStack(Piglin piglinEntity, ItemStack itemStack, CallbackInfoReturnable<Boolean> callbackInfoReturnable){
         boolean hasConsumableOffhandItem = PiglinTasksHelper.hasConsumableOffhandItem(piglinEntity);
         boolean canPickUpItemStack = callbackInfoReturnable.getReturnValue();
-        if (PiglinTasksHelper.isPiglinFoodItem(itemStack.getItem())) {
+        if (PiglinTasksHelper.isPiglinFoodItem(itemStack)) {
             canPickUpItemStack = PiglinTasksHelper.canPickUpFoodStack(piglinEntity, itemStack);
         }
         callbackInfoReturnable.setReturnValue(canPickUpItemStack && !hasConsumableOffhandItem);
@@ -119,20 +117,20 @@ public class PiglinTasksMixin {
 
         ItemStack offhandStack = piglinEntity.getItemInHand(InteractionHand.OFF_HAND);
 
-        boolean isIngotBarterGreedItem = PiglinTasksHelper.isNormalBarterItem(offhandStack.getItem());
+        boolean isIngotBarterGreedItem = PiglinTasksHelper.isNormalBarterItem(offhandStack);
         if (isIngotBarterGreedItem) {
             GreedHelper.addStackToGreedInventoryCheckBartered(piglinEntity, offhandStack, doBarter && piglinEntity.isAdult());
         }
 
         if (!piglinEntity.isBaby()) { // isAdult
-            if(PiglinTasksHelper.isExpensiveBarterItem(offhandStack.getItem()) && doBarter && willDropLoot){
+            if(PiglinTasksHelper.isExpensiveBarterItem(offhandStack) && doBarter && willDropLoot){
                 PiglinTasksHelper.dropBlockBarteringLoot(piglinEntity);
                 CompoundTag compoundNBT = offhandStack.getOrCreateTag();
                 compoundNBT.putBoolean(GreedHelper.BARTERED, true);
 
                 ReputationHelper.updatePreviousInteractorReputation(piglinEntity, PiglinReputationType.BARTER);
             }
-            else if(PiglinTasksHelper.isCheapBarterItem(offhandStack.getItem()) && doBarter && willDropLoot){
+            else if(PiglinTasksHelper.isCheapBarterItem(offhandStack) && doBarter && willDropLoot){
                 PiglinTasksHelper.dropNuggetBarteringLoot(piglinEntity);
                 CompoundTag compoundNBT = offhandStack.getOrCreateTag();
                 compoundNBT.putBoolean(GreedHelper.BARTERED, true);
@@ -140,12 +138,12 @@ public class PiglinTasksMixin {
                 ReputationHelper.updatePreviousInteractorReputation(piglinEntity, PiglinReputationType.BARTER);
             }
             // treat piglin loved items as gold gifts for adults
-            else if(PiglinTasksHelper.isPiglinLoved(offhandStack.getItem()) && !PiglinTasksHelper.isBarterItem(offhandStack.getItem())){
+            else if(PiglinTasksHelper.isPiglinLoved(offhandStack) && !PiglinTasksHelper.isBarterItem(offhandStack)){
                 ReputationHelper.updatePreviousInteractorReputation(piglinEntity, PiglinReputationType.GOLD_GIFT);
             }
 
             // Since baby Piglins don't barter, we can treat barter items as gold gifts in addition to piglin loved items
-        } else if(PiglinTasksHelper.isPiglinLoved(offhandStack.getItem()) || PiglinTasksHelper.isBarterItem(offhandStack.getItem())){
+        } else if(PiglinTasksHelper.isPiglinLoved(offhandStack) || PiglinTasksHelper.isBarterItem(offhandStack)){
             ReputationHelper.updatePreviousInteractorReputation(piglinEntity, PiglinReputationType.GOLD_GIFT);
         }
     }

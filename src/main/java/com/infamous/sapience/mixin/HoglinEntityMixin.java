@@ -34,7 +34,7 @@ public abstract class HoglinEntityMixin extends Animal implements Enemy, HoglinB
 
     @Inject(at = @At("RETURN"), method = "isFood", cancellable = true)
     private void isBreedingItem(ItemStack itemStack, CallbackInfoReturnable<Boolean> callbackInfoReturnable){
-        if(HoglinTasksHelper.isHoglinFoodItem(itemStack.getItem())){
+        if(HoglinTasksHelper.isHoglinFoodItem(itemStack)){
             callbackInfoReturnable.setReturnValue(true);
         }
     }

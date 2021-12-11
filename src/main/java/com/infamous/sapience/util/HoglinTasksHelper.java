@@ -53,12 +53,12 @@ public class HoglinTasksHelper {
 
     public static boolean canPickUpItemStack(Animal animalEntity, ItemStack itemStack) {
         Item item = itemStack.getItem();
-        if (item instanceof BlockItem && ((BlockItem) item).getBlock().is(BlockTags.HOGLIN_REPELLENTS)) {
+        if (item instanceof BlockItem blockItem && BlockTags.HOGLIN_REPELLENTS.contains(blockItem.getBlock())) {
             return false;
         } else if (animalEntity.getBrain().hasMemoryValue(MemoryModuleType.ATTACK_TARGET)) {
             return false;
         } else {
-            if (item.is(HoglinTasksHelper.HOGLIN_FOOD_ITEMS)) {
+            if (itemStack.is(HoglinTasksHelper.HOGLIN_FOOD_ITEMS)) {
                 return !hasAteRecently(animalEntity);
             }
             else{
@@ -94,8 +94,8 @@ public class HoglinTasksHelper {
         return animalEntity.getBrain().hasMemoryValue(MemoryModuleType.ATE_RECENTLY);
     }
 
-    public static boolean isHoglinFoodItem(Item item){
-        return item.is(HoglinTasksHelper.HOGLIN_FOOD_ITEMS) || item == Items.CRIMSON_FUNGUS;
+    public static boolean isHoglinFoodItem(ItemStack item){
+        return item.is(HoglinTasksHelper.HOGLIN_FOOD_ITEMS);
     }
 
     public static void setAteRecently(Animal animalEntity) {

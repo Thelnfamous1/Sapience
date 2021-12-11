@@ -21,7 +21,7 @@ public class CreateBabyTask<T extends Mob> extends Behavior<T> {
         super(ImmutableMap.of(
                 ModMemoryModuleTypes.BREEDING_TARGET.get(),
                 MemoryStatus.VALUE_PRESENT,
-                MemoryModuleType.VISIBLE_LIVING_ENTITIES,
+                MemoryModuleType.NEAREST_VISIBLE_LIVING_ENTITIES,
                 MemoryStatus.VALUE_PRESENT),
                 350, 350);
     }

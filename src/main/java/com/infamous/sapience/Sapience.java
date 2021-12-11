@@ -1,18 +1,8 @@
 package com.infamous.sapience;
 
-import com.infamous.sapience.capability.ageable.Ageable;
-import com.infamous.sapience.capability.ageable.AgeableStorage;
-import com.infamous.sapience.capability.ageable.IAgeable;
-import com.infamous.sapience.capability.greed.Greed;
-import com.infamous.sapience.capability.greed.GreedStorage;
-import com.infamous.sapience.capability.greed.IGreed;
-import com.infamous.sapience.capability.reputation.IReputation;
-import com.infamous.sapience.capability.reputation.Reputation;
-import com.infamous.sapience.capability.reputation.ReputationStorage;
 import com.infamous.sapience.mod.FieldModification;
 import com.infamous.sapience.mod.ModMemoryModuleTypes;
 import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.common.capabilities.CapabilityManager;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.common.Mod;
@@ -46,10 +36,11 @@ public class Sapience
 
     private void setup(final FMLCommonSetupEvent event)
     {
-        CapabilityManager.INSTANCE.register(IAgeable.class, new AgeableStorage(), Ageable::new);
-        CapabilityManager.INSTANCE.register(IGreed.class, new GreedStorage(), Greed::new);
-        CapabilityManager.INSTANCE.register(IReputation.class, new ReputationStorage(), Reputation::new);
-        FieldModification.init();
+        event.enqueueWork(
+                () -> {
+                    FieldModification.init();
+                }
+        );
     }
 
     private void doClientStuff(final FMLClientSetupEvent event) {

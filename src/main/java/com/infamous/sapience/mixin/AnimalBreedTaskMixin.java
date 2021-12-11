@@ -22,10 +22,10 @@ public class AnimalBreedTaskMixin {
 
     @Shadow
     @Final
-    private EntityType<? extends Animal> breedTarget;
+    private EntityType<? extends Animal> partnerType;
 
     @Shadow
-    private long breedTime;
+    private long spawnChildAtTime;
 
     @Inject(at = @At("HEAD"), method = "start")
     private void startExecuting(ServerLevel serverWorld, Animal parent, long gameTime, CallbackInfo callbackInfo){
@@ -41,7 +41,7 @@ public class AnimalBreedTaskMixin {
     private void updateTask(ServerLevel serverWorld, Animal parent, long gameTime, CallbackInfo callbackInfo){
         Animal partner = this.getBreedTarget(parent);
         if (partner != null && parent.closerThan(partner, 3.0D)) {
-            if (gameTime < this.breedTime && parent.getRandom().nextInt(35) == 0) {
+            if (gameTime < this.spawnChildAtTime && parent.getRandom().nextInt(35) == 0) {
                 serverWorld.broadcastEntityEvent(parent, (byte) HoglinTasksHelper.BREEDING_ID);
                 serverWorld.broadcastEntityEvent(partner, (byte) HoglinTasksHelper.BREEDING_ID);
             }
@@ -57,14 +57,12 @@ public class AnimalBreedTaskMixin {
     }
 
     private Optional<? extends Animal> getNearestMate(Animal animal) {
-        if(animal.getBrain().getMemory(MemoryModuleType.VISIBLE_LIVING_ENTITIES).isPresent()){
-            return animal.getBrain().getMemory(MemoryModuleType.VISIBLE_LIVING_ENTITIES)
+        if(animal.getBrain().getMemory(MemoryModuleType.NEAREST_VISIBLE_LIVING_ENTITIES).isPresent()){
+            return animal.getBrain().getMemory(MemoryModuleType.NEAREST_VISIBLE_LIVING_ENTITIES)
                     .get()
-                    .stream()
-                    .filter((livingEntity) -> livingEntity.getType() == this.breedTarget)
+                    .findClosest((livingEntity) -> livingEntity.getType() == this.partnerType)
                     .map((breedableEntities) -> (Animal)breedableEntities)
-                    .filter(animal::canMate)
-                    .findFirst();
+                    .filter(animal::canMate);
         }
         else return Optional.empty();
     }

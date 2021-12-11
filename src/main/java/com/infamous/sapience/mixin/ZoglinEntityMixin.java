@@ -1,14 +1,13 @@
 package com.infamous.sapience.mixin;
 
-import com.google.common.collect.ImmutableList;
 import com.infamous.sapience.util.GeneralHelper;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.memory.MemoryModuleType;
+import net.minecraft.world.entity.ai.memory.NearestVisibleLivingEntities;
 import net.minecraft.world.entity.monster.Creeper;
 import net.minecraft.world.entity.monster.Monster;
 import net.minecraft.world.entity.monster.Zoglin;
-import net.minecraft.world.entity.EntitySelector;
 import net.minecraft.world.level.Level;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -35,18 +34,16 @@ public abstract class ZoglinEntityMixin extends Monster {
     @Inject(at = @At("HEAD"), method = "findNearestValidAttackTarget", cancellable = true)
     private void findNearestAttackableTarget(CallbackInfoReturnable<Optional<? extends LivingEntity>> cir){
         cir.setReturnValue(
-                this.getBrain().getMemory(MemoryModuleType.VISIBLE_LIVING_ENTITIES)
-                        .orElse(ImmutableList.of())
-                        .stream()
-                        .filter((visibleEntity) -> canZoglinAttack(this, visibleEntity))
-                        .findFirst()
+                this.getBrain().getMemory(MemoryModuleType.NEAREST_VISIBLE_LIVING_ENTITIES)
+                        .orElse(NearestVisibleLivingEntities.empty())
+                        .findClosest((visibleEntity) -> canZoglinAttack(this, visibleEntity))
         );
     }
 
     private static boolean canZoglinAttack(LivingEntity attacker, LivingEntity target) {
         return !(target instanceof Zoglin)
                 && !(target instanceof Creeper)
-                && EntitySelector.ATTACK_ALLOWED.test(target)
+                && attacker.canAttack(target)
                 && GeneralHelper.isNotOnSameTeam(attacker, target);
     }
 }

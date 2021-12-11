@@ -9,6 +9,8 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.ReputationEventHandler;
+import net.minecraft.world.entity.ai.memory.MemoryModuleType;
+import net.minecraft.world.entity.ai.memory.NearestVisibleLivingEntities;
 import net.minecraft.world.entity.ai.village.ReputationEventType;
 import net.minecraft.world.entity.monster.piglin.AbstractPiglin;
 import net.minecraft.world.entity.monster.piglin.Piglin;
@@ -24,6 +26,7 @@ import net.minecraftforge.common.util.LazyOptional;
 
 import javax.annotation.Nullable;
 import java.util.List;
+import java.util.Optional;
 
 public class ReputationHelper {
 
@@ -118,15 +121,11 @@ public class ReputationHelper {
     }
 
     public static void makeWitnessesOfMurder(LivingEntity murderedEntity, Entity murderer, ReputationEventType killedReputationType){
-        if (murderedEntity.level instanceof ServerLevel) {
-            AABB axisalignedbb = murderedEntity.getBoundingBox().inflate(16.0D, 16.0D, 16.0D);
-            List<LivingEntity> nearbyWitnesses = murderedEntity.level.getEntitiesOfClass(LivingEntity.class, axisalignedbb,
-                    (nearbyEntity) -> nearbyEntity != murderedEntity && nearbyEntity.isAlive() && nearbyEntity.canSee(murderedEntity));
-
-            ServerLevel serverworld = (ServerLevel)murderedEntity.level;
-            nearbyWitnesses.stream().filter((gossipTarget) -> gossipTarget instanceof ReputationEventHandler).forEach((gossipTarget) -> {
-                serverworld.onReputationEvent(killedReputationType, murderer, (ReputationEventHandler)gossipTarget);
-            });
+        if (murderedEntity.level instanceof ServerLevel serverworld) {
+            Optional<NearestVisibleLivingEntities> optional = murderedEntity.getBrain().getMemory(MemoryModuleType.NEAREST_VISIBLE_LIVING_ENTITIES);
+            optional.ifPresent(nearestVisibleLivingEntities -> nearestVisibleLivingEntities
+                    .findAll(ReputationEventHandler.class::isInstance)
+                    .forEach((le) -> serverworld.onReputationEvent(killedReputationType, murderer, (ReputationEventHandler) le)));
         }
     }
 
