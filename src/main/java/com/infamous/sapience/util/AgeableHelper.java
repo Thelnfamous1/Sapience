@@ -42,7 +42,7 @@ public class AgeableHelper {
         }
     }
 
-    static boolean canBreed(Mob parent){
+    public static boolean canBreed(Mob parent){
         IAgeable parentAging = AgeableHelper.getAgeableCapability(parent);
         return parentAging != null && parentAging.canBreed();
     }
@@ -114,8 +114,8 @@ public class AgeableHelper {
 
     @Nullable
     public static Mob createChild(ServerLevel serverWorld, Mob parent, Mob partner){
-        EntityType parentType = parent.getType();
-        EntityType partnerType = partner.getType();
+        EntityType<?> parentType = parent.getType();
+        EntityType<?> partnerType = partner.getType();
         if(parentType == partnerType){
             Mob child = (Mob) parentType.create(serverWorld);
             if(child != null){

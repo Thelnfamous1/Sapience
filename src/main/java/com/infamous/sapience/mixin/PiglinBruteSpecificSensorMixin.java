@@ -1,6 +1,7 @@
 package com.infamous.sapience.mixin;
 
 import com.infamous.sapience.util.GeneralHelper;
+import com.infamous.sapience.util.PiglinTasksHelper;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
@@ -26,7 +27,8 @@ public class PiglinBruteSpecificSensorMixin {
 
         NearestVisibleLivingEntities nvle = brain.getMemory(MemoryModuleType.NEAREST_VISIBLE_LIVING_ENTITIES).orElse(NearestVisibleLivingEntities.empty());
         Optional<Mob> optionalNemesis = nvle.findClosest(le ->
-                (le instanceof WitherSkeleton || le instanceof WitherBoss)
+                PiglinTasksHelper.piglinsHate(le.getType())
+                        && le instanceof Mob
                         && GeneralHelper.isNotOnSameTeam(entityIn, le))
                 .map(Mob.class::cast);
 

@@ -11,7 +11,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(StopHoldingItemIfNoLongerAdmiring.class)
-public class StartAdmiringItemTaskMixin {
+public class StopAdmiringMixin {
 
     @Inject(at = @At("RETURN"), method = "checkExtraStartConditions", cancellable = true)
     private void shouldExecute(ServerLevel serverWorld, Piglin owner, CallbackInfoReturnable<Boolean> callbackInfoReturnable){

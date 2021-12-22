@@ -1,14 +1,21 @@
 package com.infamous.sapience.util;
 
+import com.infamous.sapience.Sapience;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.tags.EntityTypeTags;
+import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
+import net.minecraftforge.common.Tags;
 
 public class GeneralHelper {
     public static final int ANGER_ID = 16;
     public static final int DECLINE_ID = 6;
     public static final int ACCEPT_ID = 8;
+
+    public static final Tags.IOptionalNamedTag<EntityType<?>> ZOGLINS_IGNORE = EntityTypeTags.createOptional(new ResourceLocation(Sapience.MODID, "zoglins_ignore"));
 
     @OnlyIn(Dist.CLIENT)
     public static void spawnParticles(LivingEntity livingEntity, ParticleOptions particleData) {

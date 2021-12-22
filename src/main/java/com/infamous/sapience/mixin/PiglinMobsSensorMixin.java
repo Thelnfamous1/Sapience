@@ -38,31 +38,31 @@ public class PiglinMobsSensorMixin {
 
         NearestVisibleLivingEntities nearestvisiblelivingentities = brain.getMemory(MemoryModuleType.NEAREST_VISIBLE_LIVING_ENTITIES).orElse(NearestVisibleLivingEntities.empty());
 
-        for(LivingEntity livingentity : nearestvisiblelivingentities.findAll((p_186157_) -> true)){
-            if (livingentity instanceof Hoglin hoglinentity) {
-                if (hoglinentity.isAdult() && optionalNearestVisibleAdultHoglin.isEmpty()) {
-                    optionalNearestVisibleAdultHoglin = Optional.of(hoglinentity);
+        for(LivingEntity nearby : nearestvisiblelivingentities.findAll((le) -> true)){
+            if (nearby instanceof Hoglin hoglin) {
+                if (hoglin.isAdult() && optionalNearestVisibleAdultHoglin.isEmpty()) {
+                    optionalNearestVisibleAdultHoglin = Optional.of(hoglin);
                 }
                 if (optionalHuntableHoglin.isEmpty()
-                        && hoglinentity.canBeHunted()
-                        && GeneralHelper.isNotOnSameTeam(entityIn, hoglinentity)) {
-                    optionalHuntableHoglin = Optional.of(hoglinentity);
+                        && hoglin.canBeHunted()
+                        && GeneralHelper.isNotOnSameTeam(entityIn, hoglin)) {
+                    optionalHuntableHoglin = Optional.of(hoglin);
                 }
-            } else if (livingentity instanceof Player playerentity) {
+            } else if (nearby instanceof Player player) {
                 if (optionalPlayerNotGilded.isEmpty()
-                        && entityIn.canAttack(livingentity)
-                        && !ReputationHelper.hasAcceptableAttire(livingentity, entityIn)
-                        && GeneralHelper.isNotOnSameTeam(entityIn, livingentity)) {
-                    optionalPlayerNotGilded = Optional.of(playerentity);
+                        && entityIn.canAttack(nearby)
+                        && !ReputationHelper.hasAcceptableAttire(nearby, entityIn)
+                        && GeneralHelper.isNotOnSameTeam(entityIn, nearby)) {
+                    optionalPlayerNotGilded = Optional.of(player);
                 }
-            }  else if (optionalNemesis.isPresent() || !(livingentity instanceof WitherSkeleton) && !(livingentity instanceof WitherBoss)) {
+            }  else if (optionalNemesis.isPresent() || !PiglinTasksHelper.piglinsHate(nearby.getType())) {
                 if (optionalZombified.isEmpty()
-                        && PiglinTasksHelper.isZombified(livingentity)
-                        && GeneralHelper.isNotOnSameTeam(entityIn, livingentity)) {
-                    optionalZombified = Optional.of(livingentity);
+                        && PiglinTasksHelper.piglinsAvoid(nearby.getType())
+                        && GeneralHelper.isNotOnSameTeam(entityIn, nearby)) {
+                    optionalZombified = Optional.of(nearby);
                 }
-            } else if(GeneralHelper.isNotOnSameTeam(entityIn, livingentity)){
-                optionalNemesis = Optional.of((Mob)livingentity);
+            } else if(GeneralHelper.isNotOnSameTeam(entityIn, nearby)){
+                optionalNemesis = Optional.of((Mob)nearby);
             }
         }
         brain.setMemory(MemoryModuleType.NEAREST_VISIBLE_NEMESIS, optionalNemesis);

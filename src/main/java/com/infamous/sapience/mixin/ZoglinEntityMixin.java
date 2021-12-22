@@ -5,6 +5,7 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.memory.MemoryModuleType;
 import net.minecraft.world.entity.ai.memory.NearestVisibleLivingEntities;
+import net.minecraft.world.entity.ai.sensing.Sensor;
 import net.minecraft.world.entity.monster.Creeper;
 import net.minecraft.world.entity.monster.Monster;
 import net.minecraft.world.entity.monster.Zoglin;
@@ -24,26 +25,11 @@ public abstract class ZoglinEntityMixin extends Monster {
         super(type, worldIn);
     }
 
-    @Inject(at = @At("HEAD"), method = "setAttackTarget", cancellable = true)
-    private void wasHurtBy(LivingEntity attacker, CallbackInfo ci){
-        if(this.isAlliedTo(attacker)){
-            ci.cancel();
-        }
-    }
+    @Inject(at = @At("HEAD"), method = "isTargetable", cancellable = true)
+    private void handleTargetable(LivingEntity target, CallbackInfoReturnable<Boolean> cir){
+        EntityType<?> targetType = target.getType();
+        cir.setReturnValue(!targetType.is(GeneralHelper.ZOGLINS_IGNORE)
+                && Sensor.isEntityAttackable(this, target));
 
-    @Inject(at = @At("HEAD"), method = "findNearestValidAttackTarget", cancellable = true)
-    private void findNearestAttackableTarget(CallbackInfoReturnable<Optional<? extends LivingEntity>> cir){
-        cir.setReturnValue(
-                this.getBrain().getMemory(MemoryModuleType.NEAREST_VISIBLE_LIVING_ENTITIES)
-                        .orElse(NearestVisibleLivingEntities.empty())
-                        .findClosest((visibleEntity) -> canZoglinAttack(this, visibleEntity))
-        );
-    }
-
-    private static boolean canZoglinAttack(LivingEntity attacker, LivingEntity target) {
-        return !(target instanceof Zoglin)
-                && !(target instanceof Creeper)
-                && attacker.canAttack(target)
-                && GeneralHelper.isNotOnSameTeam(attacker, target);
     }
 }

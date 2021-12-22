@@ -3,6 +3,7 @@ package com.infamous.sapience.tasks;
 import com.google.common.collect.ImmutableMap;
 import com.infamous.sapience.mod.ModMemoryModuleTypes;
 import com.infamous.sapience.util.AgeableHelper;
+import com.infamous.sapience.util.ReputationHelper;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.ai.Brain;
@@ -84,6 +85,8 @@ public class CreateBabyTask<T extends Mob> extends Behavior<T> {
         Mob child = AgeableHelper.createChild(world, parent, partner);
         if (child != null) {
             // CAPABILITY
+            ReputationHelper.spreadGossipDirect(child, parent);
+            ReputationHelper.spreadGossipDirect(child, partner);
             AgeableHelper.setParentsOnBreedCooldown(parent, partner);
             child.moveTo(parent.getX(), parent.getY(), parent.getZ(), 0.0F, 0.0F);
             world.addFreshEntityWithPassengers(child);

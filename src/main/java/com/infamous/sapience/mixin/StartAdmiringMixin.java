@@ -14,7 +14,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import java.util.Optional;
 
 @Mixin(StartAdmiringItemIfSeen.class)
-public class AdmireItemTaskMixin {
+public class StartAdmiringMixin {
 
     @Inject(at = @At("RETURN"), method = "checkExtraStartConditions", cancellable = true)
     private void shouldExecute(ServerLevel serverWorld, Piglin owner, CallbackInfoReturnable<Boolean> callbackInfoReturnable){

@@ -13,7 +13,9 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ReputationEventHandler;
+import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
 import net.minecraft.world.entity.boss.wither.WitherBoss;
 import net.minecraft.world.entity.monster.WitherSkeleton;
 import net.minecraft.world.entity.monster.piglin.Piglin;
@@ -64,19 +66,24 @@ public class ForgeEventHandler {
     @SubscribeEvent
     public static void onLivingDeath(LivingDeathEvent event){
         Entity murderer = event.getSource().getEntity();
-        if(event.getEntityLiving() instanceof Piglin piglinEntity && murderer != null && murderer.level instanceof ServerLevel){
-            ReputationHelper.makeWitnessesOfMurder(piglinEntity, murderer,
-                    piglinEntity.isBaby() ? PiglinReputationType.BABY_PIGLIN_KILLED : PiglinReputationType.ADULT_PIGLIN_KILLED);
+        LivingEntity victim = event.getEntityLiving();
+        if(murderer == null || murderer.level.isClientSide) return;
+
+        if(victim instanceof PiglinBrute){
+            ReputationHelper.makeWitnessesOfMurder(victim, murderer, PiglinReputationType.BRUTE_KILLED);
+        } else if(victim instanceof Piglin){
+            ReputationHelper.makeWitnessesOfMurder(victim, murderer,
+                    victim.isBaby() ? PiglinReputationType.BABY_PIGLIN_KILLED : PiglinReputationType.ADULT_PIGLIN_KILLED);
         }
-        else if(event.getEntityLiving() instanceof PiglinBrute bruteEntity && murderer != null && murderer.level instanceof ServerLevel){
-            ReputationHelper.makeWitnessesOfMurder(bruteEntity, murderer, PiglinReputationType.BRUTE_KILLED);
+        else if(victim.getType().is(PiglinTasksHelper.PIGLINS_HATE)){
+            ReputationHelper.makeWitnessesOfMurder(victim, murderer,
+                    isBossMob(victim) ? PiglinReputationType.WITHER_KILLED : PiglinReputationType.WITHER_SKELETON_KILLED);
         }
-        else if(event.getEntityLiving() instanceof WitherSkeleton witherSkeletonEntity && murderer != null && murderer.level instanceof ServerLevel){
-            ReputationHelper.makeWitnessesOfMurder(witherSkeletonEntity, murderer, PiglinReputationType.WITHER_SKELETON_KILLED);
-        }
-        else if(event.getEntityLiving() instanceof WitherBoss witherEntity && murderer != null && murderer.level instanceof ServerLevel){
-            ReputationHelper.makeWitnessesOfMurder(witherEntity, murderer, PiglinReputationType.WITHER_KILLED);
-        }
+    }
+
+    private static boolean isBossMob(LivingEntity victim) {
+        // TODO: Generalize
+        return victim instanceof WitherBoss || victim instanceof EnderDragon;
     }
 
     // SERVER ONLY

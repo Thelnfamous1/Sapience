@@ -2,7 +2,13 @@ package com.infamous.sapience.mixin;
 
 import com.infamous.sapience.SapienceConfig;
 import com.infamous.sapience.capability.ageable.IAgeable;
+import com.infamous.sapience.mod.ModMemoryModuleTypes;
+import com.infamous.sapience.tasks.CraftWithGoldTask;
+import com.infamous.sapience.tasks.CreateBabyTask;
+import com.infamous.sapience.tasks.FeedHoglinsTask;
+import com.infamous.sapience.tasks.ShareGoldTask;
 import com.infamous.sapience.util.*;
+import com.mojang.datafixers.util.Pair;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
@@ -11,6 +17,7 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.Brain;
 import net.minecraft.world.entity.ai.behavior.BehaviorUtils;
+import net.minecraft.world.entity.ai.behavior.InteractWith;
 import net.minecraft.world.entity.ai.behavior.RunOne;
 import net.minecraft.world.entity.ai.memory.MemoryModuleType;
 import net.minecraft.world.entity.item.ItemEntity;
@@ -19,6 +26,7 @@ import net.minecraft.world.entity.monster.piglin.Piglin;
 import net.minecraft.world.entity.monster.piglin.PiglinAi;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+import org.checkerframework.checker.units.qual.A;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -33,27 +41,32 @@ import java.util.stream.Collectors;
 @Mixin(PiglinAi.class)
 public class PiglinTasksMixin {
 
-    @Inject(at = @At("HEAD"), method = "wasHurtBy", cancellable = true)
-    private static void wasHurtBy(Piglin piglin, LivingEntity attacker, CallbackInfo ci){
-        if(GeneralHelper.isOnSameTeam(piglin, attacker)){
-            ci.cancel();
-        }
-    }
-
     @Redirect(at = @At(value = "INVOKE",
             target = "Lnet/minecraft/world/entity/monster/piglin/PiglinAi;isZombified(Lnet/minecraft/world/entity/EntityType;)Z"),
             method = "wantsToStopFleeing")
-    private static boolean shouldAvoidZombified(EntityType entityType, Piglin piglin){
+    private static boolean shouldAvoidZombified(EntityType<?> entityType, Piglin piglin){
         Brain<Piglin> brain = piglin.getBrain();
-        LivingEntity livingentity = brain.getMemory(MemoryModuleType.AVOID_TARGET).get();
-        return PiglinTasksHelper.isZombified(livingentity)
-                && GeneralHelper.isNotOnSameTeam(piglin, livingentity);
+        LivingEntity avoidTarget = brain.getMemory(MemoryModuleType.AVOID_TARGET).get();
+        return PiglinTasksHelper.piglinsAvoid(avoidTarget.getType())
+                && GeneralHelper.isNotOnSameTeam(piglin, avoidTarget);
     }
 
     @Inject(at = @At("RETURN"), method = "createIdleMovementBehaviors", cancellable = true)
     private static void getLookTasks(CallbackInfoReturnable<RunOne<Piglin>> callbackInfoReturnable){
-        RunOne<Piglin> firstShuffledTask = new RunOne<>(PiglinTasksHelper.getInteractionTasks());
-        callbackInfoReturnable.setReturnValue(firstShuffledTask);
+        RunOne<Piglin> piglinRunOne = callbackInfoReturnable.getReturnValue();
+
+        BrainHelper.addToGateBehavior(piglinRunOne,
+                Pair.of(new InteractWith<>(
+                        EntityType.PIGLIN, 8,
+                        AgeableHelper::canBreed,
+                        AgeableHelper::canBreed,
+                        ModMemoryModuleTypes.BREEDING_TARGET.get(), 0.5F, 2),
+                1),
+                Pair.of(new CreateBabyTask<>(), 3),
+                Pair.of(new ShareGoldTask<>(), 2),
+                Pair.of(new CraftWithGoldTask<>(), 2),
+                Pair.of(new FeedHoglinsTask<>(), 2)
+        );
     }
 
     @Inject(at = @At("HEAD"), method = "setAngerTarget")
@@ -192,5 +205,10 @@ public class PiglinTasksMixin {
         if(callbackInfoReturnable.getReturnValue().consumesAction()){
             ReputationHelper.setPreviousInteractor(piglinEntity, playerEntity);
         }
+    }
+
+    @Inject(at = @At("RETURN"), method = "isZombified", cancellable = true)
+    private static void handleZombified(EntityType<?> entityType, CallbackInfoReturnable<Boolean> cir){
+        cir.setReturnValue(PiglinTasksHelper.piglinsAvoid(entityType));
     }
 }

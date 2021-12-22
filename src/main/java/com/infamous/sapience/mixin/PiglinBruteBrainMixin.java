@@ -11,11 +11,4 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(PiglinBruteAi.class)
 public class PiglinBruteBrainMixin {
-
-    @Inject(at = @At("HEAD"), method = "wasHurtBy", cancellable = true)
-    private static void wasHurtBy(PiglinBrute brute, LivingEntity attacker, CallbackInfo ci){
-        if(GeneralHelper.isOnSameTeam(brute, attacker)){
-            ci.cancel();
-        }
-    }
 }

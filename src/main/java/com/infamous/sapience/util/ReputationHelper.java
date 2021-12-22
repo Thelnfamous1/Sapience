@@ -23,10 +23,12 @@ import net.minecraft.world.entity.ai.gossip.GossipContainer;
 import net.minecraft.world.entity.ai.gossip.GossipType;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraftforge.common.util.LazyOptional;
+import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Consumer;
 
 public class ReputationHelper {
 
@@ -106,7 +108,7 @@ public class ReputationHelper {
     }
 
     // used in ShareGoldTask#updateTask
-    public static void spreadGossip(AbstractPiglin host, LivingEntity ally, long gameTime) {
+    public static void spreadGossip(LivingEntity host, LivingEntity ally, long gameTime) {
         IReputation hostReputation = getReputationCapability(host);
         IReputation allyReputation = getReputationCapability(ally);
 
@@ -120,13 +122,34 @@ public class ReputationHelper {
         }
     }
 
-    public static void makeWitnessesOfMurder(LivingEntity murderedEntity, Entity murderer, ReputationEventType killedReputationType){
-        if (murderedEntity.level instanceof ServerLevel serverworld) {
-            Optional<NearestVisibleLivingEntities> optional = murderedEntity.getBrain().getMemory(MemoryModuleType.NEAREST_VISIBLE_LIVING_ENTITIES);
-            optional.ifPresent(nearestVisibleLivingEntities -> nearestVisibleLivingEntities
-                    .findAll(ReputationEventHandler.class::isInstance)
-                    .forEach((le) -> serverworld.onReputationEvent(killedReputationType, murderer, (ReputationEventHandler) le)));
+    // used in CreateBabyTask#updateTask
+    public static void spreadGossipDirect(LivingEntity host, LivingEntity ally) {
+        IReputation hostReputation = getReputationCapability(host);
+        IReputation allyReputation = getReputationCapability(ally);
+
+        if(hostReputation != null && allyReputation != null){
+            hostReputation.getGossipManager().transferFrom(allyReputation.getGossipManager(), host.getRandom(), 10);
         }
+    }
+
+    public static void makeWitnessesOfMurder(LivingEntity victim, Entity murderer, ReputationEventType killedReputationType){
+        if (victim.level instanceof ServerLevel serverworld) {
+            if(victim.getBrain().hasMemoryValue(MemoryModuleType.NEAREST_VISIBLE_LIVING_ENTITIES)){
+                Optional<NearestVisibleLivingEntities> optional = victim.getBrain().getMemory(MemoryModuleType.NEAREST_VISIBLE_LIVING_ENTITIES);
+                optional.ifPresent(nvle -> nvle
+                        .findAll(ReputationEventHandler.class::isInstance)
+                        .forEach(updateReputation(murderer, killedReputationType, serverworld)));
+            } else{ // substitute for mobs that don't have the NEAREST_VISIBLE_LIVING_ENTITIES module
+                final double scale = 16.0D;
+                AABB aabb = victim.getBoundingBox().inflate(scale);
+                serverworld.getEntitiesOfClass(LivingEntity.class, aabb, (le) -> le != victim && le.isAlive() && le instanceof ReputationEventHandler)
+                        .forEach(updateReputation(murderer, killedReputationType, serverworld));
+            }
+        }
+    }
+
+    private static Consumer<LivingEntity> updateReputation(Entity murderer, ReputationEventType killedReputationType, ServerLevel serverworld) {
+        return (le) -> serverworld.onReputationEvent(killedReputationType, murderer, (ReputationEventHandler) le);
     }
 
     // called by the mob's tick method - use LivingUpdateEvent instead
@@ -192,8 +215,7 @@ public class ReputationHelper {
 
     public static void updatePreviousInteractorReputation(Mob mobEntity, ReputationEventType reputationType) {
         Entity previousInteractor = getPreviousInteractor(mobEntity);
-        if(previousInteractor != null && mobEntity instanceof ReputationEventHandler && mobEntity.level instanceof ServerLevel){
-            ServerLevel serverWorld = (ServerLevel) mobEntity.level;
+        if(previousInteractor != null && mobEntity instanceof ReputationEventHandler && mobEntity.level instanceof ServerLevel serverWorld){
             serverWorld.onReputationEvent(reputationType, previousInteractor, (ReputationEventHandler) mobEntity);
             setPreviousInteractor(mobEntity, null);
         }

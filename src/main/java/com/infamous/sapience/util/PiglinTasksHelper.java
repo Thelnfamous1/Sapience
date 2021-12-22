@@ -10,6 +10,7 @@ import com.infamous.sapience.tasks.ShareGoldTask;
 import com.mojang.datafixers.util.Pair;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.tags.EntityTypeTags;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.util.TimeUtil;
 import net.minecraft.util.valueproviders.UniformInt;
@@ -23,14 +24,11 @@ import net.minecraft.world.entity.ai.behavior.*;
 import net.minecraft.world.entity.ai.memory.MemoryModuleType;
 import net.minecraft.world.entity.ai.util.LandRandomPos;
 import net.minecraft.world.entity.item.ItemEntity;
-import net.minecraft.world.entity.monster.Zoglin;
-import net.minecraft.world.entity.monster.ZombifiedPiglin;
 import net.minecraft.world.entity.monster.piglin.AbstractPiglin;
 import net.minecraft.world.entity.monster.piglin.Piglin;
 import net.minecraft.world.entity.monster.piglin.PiglinArmPose;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.schedule.Activity;
-import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.UseAnim;
 import net.minecraft.world.level.storage.loot.LootContext;
@@ -45,6 +43,8 @@ import java.util.List;
 import java.util.Optional;
 
 public class PiglinTasksHelper {
+    private static final Tags.IOptionalNamedTag<EntityType<?>> PIGLINS_AVOID = EntityTypeTags.createOptional(new ResourceLocation(Sapience.MODID, "piglins_avoid"));
+    public static final Tags.IOptionalNamedTag<EntityType<?>> PIGLINS_HATE = EntityTypeTags.createOptional(new ResourceLocation(Sapience.MODID, "piglins_hate"));
 
     private static final ResourceLocation PIGLIN_BARTERING_CHEAP = new ResourceLocation(Sapience.MODID, "gameplay/piglin_bartering_cheap");
     private static final ResourceLocation PIGLIN_BARTERING_EXPENSIVE = new ResourceLocation(Sapience.MODID, "gameplay/piglin_bartering_expensive");
@@ -127,7 +127,7 @@ public class PiglinTasksHelper {
     }
 
 
-    public static ImmutableList getInteractionTasks(){
+    public static ImmutableList<Pair<Behavior<? super Piglin>, Integer>> getInteractionTasks(){
         return ImmutableList.of(
                 // Originals
                 Pair.of(new RandomStroll(0.6F),
@@ -149,7 +149,7 @@ public class PiglinTasksHelper {
                         AgeableHelper::canBreed,
                         ModMemoryModuleTypes.BREEDING_TARGET.get(), 0.5F, 2),
                         1),
-                Pair.of(new CreateBabyTask(), 3),
+                Pair.of(new CreateBabyTask<>(), 3),
                 Pair.of(new ShareGoldTask<>(), 2),
                 Pair.of(new CraftWithGoldTask<>(), 2),
                 Pair.of(new FeedHoglinsTask<>(), 2)
@@ -430,7 +430,11 @@ public class PiglinTasksHelper {
         return piglinEntity.getBrain().isActive(Activity.IDLE);
     }
 
-    public static boolean isZombified(LivingEntity livingEntity) {
-        return livingEntity instanceof ZombifiedPiglin || livingEntity instanceof Zoglin;
+    public static boolean piglinsAvoid(EntityType<?> entityType) {
+        return entityType.is(PIGLINS_AVOID);
+    }
+
+    public static boolean piglinsHate(EntityType<?> entityType) {
+        return entityType.is(PIGLINS_HATE);
     }
 }
