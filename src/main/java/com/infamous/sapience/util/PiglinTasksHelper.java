@@ -29,6 +29,7 @@ import net.minecraft.world.entity.monster.piglin.Piglin;
 import net.minecraft.world.entity.monster.piglin.PiglinArmPose;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.schedule.Activity;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.UseAnim;
 import net.minecraft.world.level.storage.loot.LootContext;
@@ -43,11 +44,15 @@ import java.util.List;
 import java.util.Optional;
 
 public class PiglinTasksHelper {
-    private static final Tags.IOptionalNamedTag<EntityType<?>> PIGLINS_AVOID = EntityTypeTags.createOptional(new ResourceLocation(Sapience.MODID, "piglins_avoid"));
+    public static final Tags.IOptionalNamedTag<EntityType<?>> PIGLINS_AVOID = EntityTypeTags.createOptional(new ResourceLocation(Sapience.MODID, "piglins_avoid"));
     public static final Tags.IOptionalNamedTag<EntityType<?>> PIGLINS_HATE = EntityTypeTags.createOptional(new ResourceLocation(Sapience.MODID, "piglins_hate"));
 
-    private static final ResourceLocation PIGLIN_BARTERING_CHEAP = new ResourceLocation(Sapience.MODID, "gameplay/piglin_bartering_cheap");
-    private static final ResourceLocation PIGLIN_BARTERING_EXPENSIVE = new ResourceLocation(Sapience.MODID, "gameplay/piglin_bartering_expensive");
+    public static final Tags.IOptionalNamedTag<Item> PIGLINS_BARTER = ItemTags.createOptional(new ResourceLocation(Sapience.MODID, "piglins_barter"));
+    public static final Tags.IOptionalNamedTag<Item> PIGLINS_BARTER_CHEAP = ItemTags.createOptional(new ResourceLocation(Sapience.MODID, "piglins_barter_cheap"));
+    public static final Tags.IOptionalNamedTag<Item> PIGLINS_BARTER_EXPENSIVE = ItemTags.createOptional(new ResourceLocation(Sapience.MODID, "piglins_barter_expensive"));
+
+    public static final ResourceLocation PIGLIN_BARTERING_CHEAP = new ResourceLocation(Sapience.MODID, "gameplay/piglin_bartering_cheap");
+    public static final ResourceLocation PIGLIN_BARTERING_EXPENSIVE = new ResourceLocation(Sapience.MODID, "gameplay/piglin_bartering_expensive");
 
     private static final UniformInt RANGED_FEEDING_TIMER = TimeUtil.rangeOfSeconds(30, 120);
 
@@ -245,7 +250,7 @@ public class PiglinTasksHelper {
     }
 
     public static boolean isNormalBarterItem(ItemStack item){
-        return item.is(Tags.Items.INGOTS_GOLD);
+        return item.is(PIGLINS_BARTER);
     }
 
     public static boolean isBarterItem(ItemStack item) {
@@ -389,11 +394,11 @@ public class PiglinTasksHelper {
     }
 
     public static boolean isExpensiveBarterItem(ItemStack item) {
-        return item.is(Tags.Items.STORAGE_BLOCKS_GOLD);
+        return item.is(PIGLINS_BARTER_EXPENSIVE);
     }
 
     public static boolean isCheapBarterItem(ItemStack item) {
-        return item.is(Tags.Items.NUGGETS_GOLD);
+        return item.is(PIGLINS_BARTER_CHEAP);
     }
 
     public static void dropBlockBarteringLoot(AbstractPiglin piglinEntity){

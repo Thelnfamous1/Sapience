@@ -32,15 +32,10 @@ import java.util.function.Consumer;
 
 public class ReputationHelper {
 
-    private static final int ALLY_REPUTATION = SapienceConfig.COMMON.ALLY_GOSSIP_REQUIREMENT.get();
-    private static final int FRIENDLY_REPUTATION = SapienceConfig.COMMON.FRIENDLY_GOSSIP_REQUIREMENT.get();
     private static final int NEUTRAL_REPUTATION = 0;
-    private static final int UNFRIENDLY_REPUTATION = SapienceConfig.COMMON.UNFRIENDLY_GOSSIP_REQUIREMENT.get();
-    private static final int ENEMY_REPUTATION = SapienceConfig.COMMON.ENEMY_GOSSIP_REQUIREMENT.get();
-
 
     @Nullable
-    private static IReputation getReputationCapability(Entity entity)
+    public static IReputation getReputationCapability(Entity entity)
     {
         LazyOptional<IReputation> lazyCap = entity.getCapability(ReputationProvider.REPUTATION_CAPABILITY);
         if (lazyCap.isPresent()) {
@@ -176,7 +171,7 @@ public class ReputationHelper {
     }
 
     // call this whenever a reputation of a player must be considered
-    private static int getEntityReputation(LivingEntity reputationEntity, LivingEntity entityToCheck) {
+    public static int getEntityReputation(Entity reputationEntity, Entity entityToCheck) {
         IReputation reputation = getReputationCapability(reputationEntity);
         if(reputation != null){
             // A negative value means bad reputation, a positive value means good reputation
@@ -222,17 +217,17 @@ public class ReputationHelper {
     }
 
     public static boolean isAllowedToTouchGold(Player playerEntity, Piglin nearbyPiglin) {
-        return getEntityReputation(nearbyPiglin, playerEntity) >= ALLY_REPUTATION
+        return getEntityReputation(nearbyPiglin, playerEntity) >= SapienceConfig.COMMON.ALLY_GOSSIP_REQUIREMENT.get()
                 || GeneralHelper.isOnSameTeam(nearbyPiglin, playerEntity);
     }
 
     public static boolean hasAcceptableAttire(LivingEntity livingEntity, LivingEntity sensorEntity) {
         return (PiglinAi.isWearingGold(livingEntity) &&
-                getEntityReputation(sensorEntity, livingEntity) > ENEMY_REPUTATION)
-                || getEntityReputation(sensorEntity, livingEntity) >= FRIENDLY_REPUTATION;
+                getEntityReputation(sensorEntity, livingEntity) > SapienceConfig.COMMON.ENEMY_GOSSIP_REQUIREMENT.get())
+                || getEntityReputation(sensorEntity, livingEntity) >= SapienceConfig.COMMON.FRIENDLY_GOSSIP_REQUIREMENT.get();
     }
 
     public static boolean isAllowedToBarter(Piglin piglinEntity, LivingEntity interactorEntity) {
-        return getEntityReputation(piglinEntity, interactorEntity) > UNFRIENDLY_REPUTATION;
+        return getEntityReputation(piglinEntity, interactorEntity) > SapienceConfig.COMMON.UNFRIENDLY_GOSSIP_REQUIREMENT.get();
     }
 }

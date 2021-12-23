@@ -24,7 +24,7 @@ import net.minecraft.world.level.Level;
 import net.minecraftforge.common.Tags;
 
 public class HoglinTasksHelper {
-    private static final Tags.IOptionalNamedTag<Item> HOGLIN_FOOD_ITEMS = ItemTags.createOptional(new ResourceLocation(Sapience.MODID, "hoglin_food_items"));
+    public static final Tags.IOptionalNamedTag<Item> HOGLIN_FOOD_ITEMS = ItemTags.createOptional(new ResourceLocation(Sapience.MODID, "hoglin_food_items"));
     public static final int GROWING_ID = 12;
     public static final int BREEDING_ID = 18;
 
