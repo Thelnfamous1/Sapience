@@ -18,7 +18,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public class SensorMixin<E extends LivingEntity> {
  
     // Potential Forge PR
-    @Inject(at = @At(value = "INVOKE_ASSIGN", target = "Lnet/minecraft/world/entity/ai/sensing/Sensor;doTick(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/LivingEntity;)V"), method = "tick")
+    @Inject(at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/ai/sensing/Sensor;doTick(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/LivingEntity;)V", shift = At.Shift.AFTER), method = "tick")
     private void postDoTick(ServerLevel serverLevel, E entity, CallbackInfo ci){
         if(entity instanceof PiglinBrute brute){
             BruteTasksHelper.additionalSensorLogic(brute);

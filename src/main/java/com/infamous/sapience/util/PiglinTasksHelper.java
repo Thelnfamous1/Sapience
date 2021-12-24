@@ -56,6 +56,7 @@ public class PiglinTasksHelper {
     public static final ResourceLocation PIGLIN_BARTERING_EXPENSIVE = new ResourceLocation(Sapience.MODID, "gameplay/piglin_bartering_expensive");
 
     private static final UniformInt RANGED_FEEDING_TIMER = TimeUtil.rangeOfSeconds(30, 120);
+    public static final UniformInt TIME_BETWEEN_HUNTS = TimeUtil.rangeOfSeconds(30, 120);
 
     public static boolean canPickUpFoodStack(Piglin piglinEntity, ItemStack itemStack) {
         if (itemStack.is(ItemTags.PIGLIN_REPELLENTS)) {

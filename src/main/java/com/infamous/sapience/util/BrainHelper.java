@@ -10,9 +10,13 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.Brain;
 import net.minecraft.world.entity.ai.behavior.Behavior;
 import net.minecraft.world.entity.ai.behavior.GateBehavior;
+import net.minecraft.world.entity.ai.memory.MemoryModuleType;
+import net.minecraft.world.entity.ai.sensing.Sensor;
+import net.minecraft.world.entity.ai.sensing.SensorType;
 import net.minecraft.world.entity.schedule.Activity;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Predicate;
@@ -73,5 +77,23 @@ public class BrainHelper {
         for(Pair<Behavior<?>, Integer> weightedBehavior : weightedTasks){
             accessor.getBehaviors().add(weightedBehavior.getFirst(), weightedBehavior.getSecond());
         }
+    }
+
+    public static Collection<? extends SensorType<? extends Sensor<?>>> addSensorTypes(Collection<? extends SensorType<? extends Sensor<?>>> original, SensorType<? extends Sensor<?>>... additional) {
+        ImmutableList.Builder<SensorType<? extends Sensor<?>>> builder = new ImmutableList.Builder<>();
+        builder.addAll(original);
+        for(SensorType<? extends Sensor<?>> sensorType : additional){
+            builder.add(sensorType);
+        }
+        return builder.build();
+    }
+
+    public static Collection<? extends MemoryModuleType<?>> addMemoryModules(Collection<? extends MemoryModuleType<?>> original, MemoryModuleType<?>... additional) {
+        ImmutableList.Builder<MemoryModuleType<?>> builder = new ImmutableList.Builder<>();
+        builder.addAll(original);
+        for(MemoryModuleType<?> memoryModuleType : additional){
+            builder.add(memoryModuleType);
+        }
+        return builder.build();
     }
 }
