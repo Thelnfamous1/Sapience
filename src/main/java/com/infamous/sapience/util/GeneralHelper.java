@@ -3,12 +3,15 @@ package com.infamous.sapience.util;
 import com.infamous.sapience.Sapience;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.EntityTypeTags;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.core.particles.ParticleOptions;
+import net.minecraft.world.entity.monster.hoglin.Hoglin;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.common.Tags;
+import org.jetbrains.annotations.NotNull;
 
 public class GeneralHelper {
     public static final int ANGER_ID = 16;
@@ -16,6 +19,7 @@ public class GeneralHelper {
     public static final int ACCEPT_ID = 8;
 
     public static final Tags.IOptionalNamedTag<EntityType<?>> ZOGLINS_IGNORE = EntityTypeTags.createOptional(new ResourceLocation(Sapience.MODID, "zoglins_ignore"));
+    public static final Tags.IOptionalNamedTag<EntityType<?>> BOSSES = EntityTypeTags.createOptional(new ResourceLocation(Sapience.MODID, "bosses"));
 
     @OnlyIn(Dist.CLIENT)
     public static void spawnParticles(LivingEntity livingEntity, ParticleOptions particleData) {
@@ -33,5 +37,13 @@ public class GeneralHelper {
 
     public static boolean isOnSameTeam(LivingEntity entityIn, LivingEntity livingentity) {
         return entityIn.isAlliedTo(livingentity);
+    }
+
+    public static EntityType<?> maybeSpoofHoglin(Entity entity) {
+        return entity instanceof Hoglin ? EntityType.HOGLIN : entity.getType();
+    }
+
+    public static EntityType<?> maybeSpoofPiglinsHunt(Entity entity) {
+        return entity.getType().is(PiglinTasksHelper.PIGLINS_HUNT) ? EntityType.HOGLIN : entity.getType();
     }
 }

@@ -44,6 +44,7 @@ import java.util.List;
 import java.util.Optional;
 
 public class PiglinTasksHelper {
+    public static final Tags.IOptionalNamedTag<EntityType<?>> PIGLINS_HUNT = EntityTypeTags.createOptional(new ResourceLocation(Sapience.MODID, "piglins_hunt"));
     public static final Tags.IOptionalNamedTag<EntityType<?>> PIGLINS_AVOID = EntityTypeTags.createOptional(new ResourceLocation(Sapience.MODID, "piglins_avoid"));
     public static final Tags.IOptionalNamedTag<EntityType<?>> PIGLINS_HATE = EntityTypeTags.createOptional(new ResourceLocation(Sapience.MODID, "piglins_hate"));
 
@@ -112,7 +113,7 @@ public class PiglinTasksHelper {
 
 
     public static boolean isPiglinFoodItem(ItemStack item) {
-        return item.is(ItemTags.PIGLIN_FOOD) && item.isEdible();
+        return item.is(ItemTags.PIGLIN_FOOD);
     }
 
     public static boolean hasAteRecently(AbstractPiglin piglinEntity) {

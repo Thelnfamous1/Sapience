@@ -5,9 +5,9 @@
   "minVersion": "0.8.5",
   "refmap": "sapience.refmap.json",
   "mixins": [
-    "StartAdmiringMixin",
     "AnimalBreedTaskMixin",
     "BrainAccessor",
+    "GateBehaviorAccessor",
     "HoglinEntityMixin",
     "HoglinTasksMixin",
     "PiglinBruteBrainMixin",
@@ -15,7 +15,8 @@
     "PiglinEntityMixin",
     "PiglinMobsSensorMixin",
     "PiglinTasksMixin",
-    "GateBehaviorAccessor",
+    "RememberIfHoglinWasKilledMixin",
+    "StartAdmiringMixin",
     "StopAdmiringMixin",
     "ZoglinEntityMixin"
   ],

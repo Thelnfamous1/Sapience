@@ -1,6 +1,5 @@
 package com.infamous.sapience.capability.reputation;
 
-import com.infamous.sapience.capability.ageable.IAgeable;
 import com.mojang.serialization.Dynamic;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
