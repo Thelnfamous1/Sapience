@@ -14,7 +14,11 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ReputationEventHandler;
+import net.minecraft.world.entity.ai.behavior.Behavior;
+import net.minecraft.world.entity.ai.behavior.GateBehavior;
 import net.minecraft.world.entity.ai.behavior.GoToWantedItem;
+import net.minecraft.world.entity.ai.behavior.RunOne;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.monster.hoglin.Hoglin;
 import net.minecraft.world.entity.monster.piglin.AbstractPiglin;
 import net.minecraft.world.entity.monster.piglin.Piglin;
@@ -25,12 +29,13 @@ import net.minecraft.world.entity.schedule.Activity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.event.AttachCapabilitiesEvent;
 import net.minecraftforge.event.entity.EntityJoinWorldEvent;
-import net.minecraftforge.event.entity.living.LivingAttackEvent;
-import net.minecraftforge.event.entity.living.LivingDeathEvent;
-import net.minecraftforge.event.entity.living.LivingEvent;
+import net.minecraftforge.event.entity.living.*;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
+
+import java.util.Collection;
+import java.util.Optional;
 
 @Mod.EventBusSubscriber(modid = Sapience.MODID)
 public class ForgeEventHandler {
@@ -48,23 +53,21 @@ public class ForgeEventHandler {
             event.addCapability(REPUTATION_LOCATION, new ReputationProvider());
         }
     }
-
-    // SERVER ONLY - Note that AgeableHelper#createChild already initializes the child,
-    // so the call to AgeableHelper#initializeChild here won't do anything for a piglin that was spawned from breeding
-    // This is strictly for initializing the Ageable capability for naturally spawning baby piglins
     @SubscribeEvent
     public static void onEntityJoinWorld(EntityJoinWorldEvent event){
         Entity entity = event.getEntity();
-        if(entity instanceof Piglin piglin && !event.getWorld().isClientSide){
-            // Manually setting the piglin's growing age to -24000
-                // Normally, setChild would automatically set the growing age based on the boolean given
-                // But since Piglins don't extend from AgeableEntity, we have to do it manually here
-                // We choose EntityJoinWorldEvent since this is guaranteed to work whenever the Piglin is initially spawned
-                // But we also need to set the capability's wasBorn field to true,
-                // so that the growing age is not reset when the world is loaded back up from the disk again
-            if(piglin.isBaby()){
+        if(entity instanceof Piglin piglin){
+            if(piglin.isBaby() && !entity.level.isClientSide){
                 AgeableHelper.initializeChild(piglin);
             }
+            BrainHelper
+                    .retrieveFirstAvailableTask(piglin.getBrain(), Activity.IDLE, 16, b -> b instanceof RunOne<?>)
+                    .map(RunOne.class::cast)
+                    .ifPresent(PiglinTasksHelper::addAdditionalIdleMovementBehaviors);
+            BrainHelper
+                    .retrieveFirstAvailableTask(piglin.getBrain(), Activity.AVOID, 12, b -> b instanceof RunOne<?>)
+                    .map(RunOne.class::cast)
+                    .ifPresent(PiglinTasksHelper::addAdditionalIdleMovementBehaviors);
         }
         // Better, Forge-supported way of adding tasks to entity brains
         if(entity instanceof Hoglin hoglin){
@@ -167,5 +170,25 @@ public class ForgeEventHandler {
 
     private static void sendReputation(Player player, Entity target, int reputation) {
             player.sendMessage(new TranslatableComponent(REPUTATION_DISPLAY_LOCALIZATION, target, reputation), Util.NIL_UUID);
+    }
+
+    @SubscribeEvent
+    public static void onLivingConversion(LivingConversionEvent.Post event){
+        if(event.getEntityLiving() instanceof Piglin piglin){
+            GreedHelper.dropGreedItems(piglin);
+        }
+    }
+
+    @SubscribeEvent
+    public static void onLivingDrops(LivingDropsEvent event){
+        if(event.getEntityLiving() instanceof Piglin piglin){
+            Collection<ItemStack> greedItemsForDrop = GreedHelper.getGreedItemsForDrop(piglin);
+            Collection<ItemEntity> drops = event.getDrops();
+            greedItemsForDrop.forEach(stack -> {
+                ItemEntity itemEntity = new ItemEntity(piglin.level, piglin.getX(), piglin.getY(), piglin.getZ(), stack);
+                itemEntity.setDefaultPickUpDelay();
+                drops.add(itemEntity);
+            });
+        }
     }
 }

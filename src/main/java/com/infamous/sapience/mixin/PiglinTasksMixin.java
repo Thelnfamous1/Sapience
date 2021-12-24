@@ -2,23 +2,14 @@ package com.infamous.sapience.mixin;
 
 import com.infamous.sapience.SapienceConfig;
 import com.infamous.sapience.capability.ageable.IAgeable;
-import com.infamous.sapience.mod.ModMemoryModuleTypes;
-import com.infamous.sapience.tasks.CraftWithGoldTask;
-import com.infamous.sapience.tasks.CreateBabyTask;
-import com.infamous.sapience.tasks.FeedHoglinsTask;
-import com.infamous.sapience.tasks.ShareGoldTask;
 import com.infamous.sapience.util.*;
-import com.mojang.datafixers.util.Pair;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.ai.Brain;
 import net.minecraft.world.entity.ai.behavior.BehaviorUtils;
-import net.minecraft.world.entity.ai.behavior.InteractWith;
-import net.minecraft.world.entity.ai.behavior.RunOne;
 import net.minecraft.world.entity.ai.memory.MemoryModuleType;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.monster.piglin.AbstractPiglin;
@@ -35,6 +26,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 @Mixin(PiglinAi.class)
@@ -44,29 +36,24 @@ public class PiglinTasksMixin {
             target = "Lnet/minecraft/world/entity/monster/piglin/PiglinAi;isZombified(Lnet/minecraft/world/entity/EntityType;)Z"),
             method = "wantsToStopFleeing")
     private static boolean shouldAvoidZombified(EntityType<?> entityType, Piglin piglin){
-        Brain<Piglin> brain = piglin.getBrain();
-        LivingEntity avoidTarget = brain.getMemory(MemoryModuleType.AVOID_TARGET).get();
-        return PiglinTasksHelper.piglinsAvoid(avoidTarget.getType())
-                && GeneralHelper.isNotOnSameTeam(piglin, avoidTarget);
+        AtomicBoolean shouldAvoid = new AtomicBoolean(false);
+        piglin.getBrain().getMemory(MemoryModuleType.AVOID_TARGET).ifPresent(
+                le -> shouldAvoid.set(
+                        PiglinTasksHelper.piglinsAvoid(le.getType())
+                                && GeneralHelper.isNotOnSameTeam(piglin, le)
+                )
+        );
+        return shouldAvoid.get();
     }
 
+    /*
     @Inject(at = @At("RETURN"), method = "createIdleMovementBehaviors", cancellable = true)
     private static void getLookTasks(CallbackInfoReturnable<RunOne<Piglin>> callbackInfoReturnable){
         RunOne<Piglin> piglinRunOne = callbackInfoReturnable.getReturnValue();
 
-        BrainHelper.addToGateBehavior(piglinRunOne,
-                Pair.of(new InteractWith<>(
-                        EntityType.PIGLIN, 8,
-                        AgeableHelper::canBreed,
-                        AgeableHelper::canBreed,
-                        ModMemoryModuleTypes.BREEDING_TARGET.get(), 0.5F, 2),
-                1),
-                Pair.of(new CreateBabyTask<>(), 3),
-                Pair.of(new ShareGoldTask<>(), 2),
-                Pair.of(new CraftWithGoldTask<>(), 2),
-                Pair.of(new FeedHoglinsTask<>(), 2)
-        );
+        PiglinTasksHelper.addAdditionalIdleMovementBehaviors(piglinRunOne);
     }
+     */
 
     @Inject(at = @At("HEAD"), method = "setAngerTarget")
     private static void setAngerTarget(AbstractPiglin piglinEntity, LivingEntity target, CallbackInfo callbackInfo){

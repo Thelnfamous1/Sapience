@@ -1,6 +1,6 @@
 package com.infamous.sapience.util;
 
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 import com.infamous.sapience.Sapience;
 import com.infamous.sapience.mod.ModMemoryModuleTypes;
 import com.infamous.sapience.tasks.CraftWithGoldTask;
@@ -16,14 +16,14 @@ import net.minecraft.util.TimeUtil;
 import net.minecraft.util.valueproviders.UniformInt;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.EquipmentSlot;
-import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.*;
+import net.minecraft.world.entity.ai.Brain;
 import net.minecraft.world.entity.ai.behavior.*;
 import net.minecraft.world.entity.ai.memory.MemoryModuleType;
+import net.minecraft.world.entity.ai.memory.NearestVisibleLivingEntities;
 import net.minecraft.world.entity.ai.util.LandRandomPos;
 import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.entity.monster.hoglin.Hoglin;
 import net.minecraft.world.entity.monster.piglin.AbstractPiglin;
 import net.minecraft.world.entity.monster.piglin.Piglin;
 import net.minecraft.world.entity.monster.piglin.PiglinArmPose;
@@ -65,7 +65,6 @@ public class PiglinTasksHelper {
         } else if (itemStack.isPiglinCurrency()) {
             return PiglinTasksHelper.hasOpenOffhandSlot(piglinEntity);
         } else {
-            //boolean canAddItemStackToInventory = AgeableHelper.canAddItemStackToFoodInventory(piglinEntity, itemStack);
             if (PiglinTasksHelper.isPiglinFoodItem(itemStack)) {
                 return !PiglinTasksHelper.hasAteRecently(piglinEntity) && hasOpenOffhandSlot(piglinEntity);
             }
@@ -113,7 +112,7 @@ public class PiglinTasksHelper {
 
 
     public static boolean isPiglinFoodItem(ItemStack item) {
-        return item.is(ItemTags.PIGLIN_FOOD);
+        return item.is(ItemTags.PIGLIN_FOOD) && item.isEdible();
     }
 
     public static boolean hasAteRecently(AbstractPiglin piglinEntity) {
@@ -133,44 +132,6 @@ public class PiglinTasksHelper {
     }
 
 
-    public static ImmutableList<Pair<Behavior<? super Piglin>, Integer>> getInteractionTasks(){
-        return ImmutableList.of(
-                // Originals
-                Pair.of(new RandomStroll(0.6F),
-                        2),
-                Pair.of(InteractWith.of(
-                        EntityType.PIGLIN, 8,
-                        MemoryModuleType.INTERACTION_TARGET, 0.6F, 2),
-                        2),
-                Pair.of(new RunIf<>(
-                        PiglinTasksHelper::doesNotHaveNearestPlayerHoldingWantedItem,
-                        new SetWalkTargetFromLookTarget(0.6F, 3)),
-                        2),
-                Pair.of(new DoNothing(30, 60),
-                        1),
-                // Additions
-                Pair.of(new InteractWith<>(
-                        EntityType.PIGLIN, 8,
-                        AgeableHelper::canBreed,
-                        AgeableHelper::canBreed,
-                        ModMemoryModuleTypes.BREEDING_TARGET.get(), 0.5F, 2),
-                        1),
-                Pair.of(new CreateBabyTask<>(), 3),
-                Pair.of(new ShareGoldTask<>(), 2),
-                Pair.of(new CraftWithGoldTask<>(), 2),
-                Pair.of(new FeedHoglinsTask<>(), 2)
-                );
-
-    }
-
-    public static boolean hasNearbyBabyHoglin(Piglin piglinEntity){
-        return piglinEntity.getBrain().hasMemoryValue(MemoryModuleType.NEAREST_VISIBLE_BABY_HOGLIN);
-    }
-
-    public static boolean hasHuntedRecently(Piglin piglinEntity){
-        return piglinEntity.getBrain().hasMemoryValue(MemoryModuleType.HUNTED_RECENTLY);
-    }
-
     public static boolean hasNotFedRecently(Piglin piglinEntity){
         return !hasFedRecently(piglinEntity);
     }
@@ -181,24 +142,6 @@ public class PiglinTasksHelper {
 
     private static boolean hasFedRecently(Piglin piglinEntity){
         return piglinEntity.getBrain().hasMemoryValue(ModMemoryModuleTypes.FED_RECENTLY.get());
-    }
-
-    public static boolean outnumbersHoglins(Piglin piglinEntity){
-        return !isOutnumberedByHoglins(piglinEntity);
-    }
-
-    private static boolean isOutnumberedByHoglins(Piglin piglinEntity) {
-        int piglinCount = piglinEntity.getBrain().getMemory(MemoryModuleType.VISIBLE_ADULT_PIGLIN_COUNT).orElse(0) + 1;
-        int hoglinCount = piglinEntity.getBrain().getMemory(MemoryModuleType.VISIBLE_ADULT_HOGLIN_COUNT).orElse(0);
-        return hoglinCount > piglinCount;
-    }
-
-    private static boolean hasNearestPlayerHoldingWantedItem(LivingEntity livingEntity) {
-        return livingEntity.getBrain().hasMemoryValue(MemoryModuleType.NEAREST_PLAYER_HOLDING_WANTED_ITEM);
-    }
-
-    private static boolean doesNotHaveNearestPlayerHoldingWantedItem(LivingEntity livingEntity) {
-        return !hasNearestPlayerHoldingWantedItem(livingEntity);
     }
 
     public static void removeTimeTryingToReachAdmireItem(Piglin piglinEntity){
@@ -217,18 +160,9 @@ public class PiglinTasksHelper {
     }
 
     private static void setItemStackToOffhandAndPersist(AbstractPiglin piglinEntity, ItemStack itemStack) {
-        /*
-        if (itemStack.isPiglinCurrency()) {
-            piglinEntity.setItemStackToSlot(EquipmentSlotType.OFFHAND, itemStack);
-            piglinEntity.setGuaranteedDrop(EquipmentSlotType.OFFHAND);
-        } else {
-
-         */
-            piglinEntity.setItemSlot(EquipmentSlot.OFFHAND, itemStack);
-            piglinEntity.setGuaranteedDrop(EquipmentSlot.OFFHAND);
-            piglinEntity.setPersistenceRequired();
-        //}
-
+        piglinEntity.setItemSlot(EquipmentSlot.OFFHAND, itemStack);
+        piglinEntity.setGuaranteedDrop(EquipmentSlot.OFFHAND);
+        piglinEntity.setPersistenceRequired();
     }
 
     public static void clearWalkPath(AbstractPiglin piglinEntity) {
@@ -266,8 +200,6 @@ public class PiglinTasksHelper {
         ItemStack itemstack = playerEntity.getItemInHand(hand);
         if (canAcceptFoodItem(piglinEntity, itemstack)) {
             ItemStack foodStack = itemstack.split(1);
-            //addToFoodInventoryThenDropRemainder(piglinEntity, foodStack);
-            //setAteRecently(piglinEntity);
             PiglinTasksHelper.dropOffhandItemAndSetItemStackToOffhand(piglinEntity, foodStack);
             PiglinTasksHelper.setAdmiringItem(piglinEntity);
             PiglinTasksHelper.clearWalkPath(piglinEntity);
@@ -428,10 +360,6 @@ public class PiglinTasksHelper {
         dropItems(piglinEntity, itemStacks, playerEntity.position());
     }
 
-    private static Optional<LivingEntity> getAngerTargetFromMemory(AbstractPiglin piglinEntity) {
-        return BehaviorUtils.getLivingEntityFromUUIDMemory(piglinEntity, MemoryModuleType.ANGRY_AT);
-    }
-
     public static boolean hasIdle(AbstractPiglin piglinEntity) {
         return piglinEntity.getBrain().isActive(Activity.IDLE);
     }
@@ -442,5 +370,74 @@ public class PiglinTasksHelper {
 
     public static boolean piglinsHate(EntityType<?> entityType) {
         return entityType.is(PIGLINS_HATE);
+    }
+
+    public static void additionalSensorLogic(LivingEntity entityIn) {
+        Brain<?> brain = entityIn.getBrain();
+
+        Optional<Mob> optionalNemesis = Optional.empty();
+        Optional<Hoglin> optionalHuntableHoglin = Optional.empty();
+        Optional<Player> optionalPlayerNotGilded = Optional.empty();
+        Optional<LivingEntity> optionalZombified = Optional.empty();
+
+        Optional<Hoglin> optionalNearestVisibleAdultHoglin = Optional.empty();
+
+        List<AbstractPiglin> visibleAdultPiglins = Lists.newArrayList();
+
+        NearestVisibleLivingEntities nearestvisiblelivingentities = brain.getMemory(MemoryModuleType.NEAREST_VISIBLE_LIVING_ENTITIES).orElse(NearestVisibleLivingEntities.empty());
+
+        for(LivingEntity nearby : nearestvisiblelivingentities.findAll((le) -> true)){
+            if (nearby instanceof Hoglin hoglin) {
+                if (hoglin.isAdult() && optionalNearestVisibleAdultHoglin.isEmpty()) {
+                    optionalNearestVisibleAdultHoglin = Optional.of(hoglin);
+                }
+                if (optionalHuntableHoglin.isEmpty()
+                        && hoglin.canBeHunted()
+                        && GeneralHelper.isNotOnSameTeam(entityIn, hoglin)) {
+                    optionalHuntableHoglin = Optional.of(hoglin);
+                }
+            } else if (nearby instanceof AbstractPiglin piglin) {
+                if (piglin.isAdult()) {
+                    visibleAdultPiglins.add(piglin);
+                }
+            } else if (nearby instanceof Player player) {
+                if (optionalPlayerNotGilded.isEmpty()
+                        && entityIn.canAttack(nearby)
+                        && !ReputationHelper.hasAcceptableAttire(nearby, entityIn)
+                        && GeneralHelper.isNotOnSameTeam(entityIn, nearby)) {
+                    optionalPlayerNotGilded = Optional.of(player);
+                }
+            }  else if (optionalNemesis.isPresent() || !piglinsHate(nearby.getType())) {
+                if (optionalZombified.isEmpty()
+                        && piglinsAvoid(nearby.getType())
+                        && GeneralHelper.isNotOnSameTeam(entityIn, nearby)) {
+                    optionalZombified = Optional.of(nearby);
+                }
+            } else if(GeneralHelper.isNotOnSameTeam(entityIn, nearby)){
+                optionalNemesis = Optional.of((Mob)nearby);
+            }
+        }
+        brain.setMemory(MemoryModuleType.NEAREST_VISIBLE_NEMESIS, optionalNemesis);
+        brain.setMemory(MemoryModuleType.NEAREST_VISIBLE_HUNTABLE_HOGLIN, optionalHuntableHoglin);
+        brain.setMemory(MemoryModuleType.NEAREST_VISIBLE_ZOMBIFIED, optionalZombified);
+        brain.setMemory(MemoryModuleType.NEAREST_TARGETABLE_PLAYER_NOT_WEARING_GOLD, optionalPlayerNotGilded);
+        brain.setMemory(ModMemoryModuleTypes.NEAREST_VISIBLE_ADULT_HOGLIN.get(), optionalNearestVisibleAdultHoglin);
+        brain.setMemory(MemoryModuleType.NEAREST_VISIBLE_ADULT_PIGLINS, visibleAdultPiglins);
+        brain.setMemory(MemoryModuleType.VISIBLE_ADULT_PIGLIN_COUNT, visibleAdultPiglins.size());
+    }
+
+    public static void addAdditionalIdleMovementBehaviors(GateBehavior<Piglin> gateBehavior) {
+        BrainHelper.addToGateBehavior(gateBehavior,
+                Pair.of(new InteractWith<>(
+                        EntityType.PIGLIN, 8,
+                        AgeableHelper::canBreed,
+                        AgeableHelper::canBreed,
+                        ModMemoryModuleTypes.BREEDING_TARGET.get(), 0.5F, 2),
+                1),
+                Pair.of(new CreateBabyTask<>(), 3),
+                Pair.of(new ShareGoldTask<>(), 2),
+                Pair.of(new CraftWithGoldTask<>(), 2),
+                Pair.of(new FeedHoglinsTask<>(), 2)
+        );
     }
 }

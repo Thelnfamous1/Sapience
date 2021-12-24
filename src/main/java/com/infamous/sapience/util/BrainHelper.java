@@ -14,6 +14,8 @@ import net.minecraft.world.entity.schedule.Activity;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
+import java.util.function.Predicate;
 
 public class BrainHelper {
 
@@ -41,6 +43,16 @@ public class BrainHelper {
                     .computeIfAbsent(activity, (a) -> Sets.newLinkedHashSet())
                     .add(pair.getSecond());
         }
+    }
+
+    public static Optional<Behavior<?>> retrieveFirstAvailableTask(Brain<?> brain, Activity activityType, int priority, Predicate<Behavior<?>> predicate){
+        BrainAccessor accessor = castToAccessor(brain);
+        return accessor.getAvailableBehaviorsByPriority()
+                .get(priority)
+                .get(activityType)
+                .stream()
+                .filter(predicate)
+                .findFirst();
     }
 
     public static void addAdditionalTasks(Brain<?> brain, Activity activityType, int priorityStart, Behavior<?>... tasks) {
