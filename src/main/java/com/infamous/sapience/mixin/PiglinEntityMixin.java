@@ -35,7 +35,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(Piglin.class)
 public abstract class PiglinEntityMixin extends AbstractPiglin implements IShakesHead, ReputationEventHandler {
     private static final EntityDataAccessor<Integer> SHAKE_HEAD_TICKS = SynchedEntityData.defineId(Piglin.class, EntityDataSerializers.INT);
-    private static final int NO_TICKS = 40;
 
     public PiglinEntityMixin(EntityType<? extends AbstractPiglin> entityType, Level world) {
         super(entityType, world);
@@ -43,19 +42,17 @@ public abstract class PiglinEntityMixin extends AbstractPiglin implements IShake
 
     @Inject(at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/monster/piglin/PiglinAi;isLovedItem(Lnet/minecraft/world/item/ItemStack;)Z"), method = "getArmPose", cancellable = true)
     private void canPiglinAdmire(CallbackInfoReturnable<PiglinArmPose> callbackInfoReturnable){
-        boolean isPiglinLoved = PiglinTasksHelper.isPiglinLoved(this.getOffhandItem());
-        boolean isPiglinGreedItem = PiglinTasksHelper.isBarterItem(this.getOffhandItem());
-        if(isPiglinLoved || isPiglinGreedItem){
+        if(PiglinTasksHelper.isPiglinLoved(this.getOffhandItem()) || PiglinTasksHelper.isBarterItem(this.getOffhandItem())){
             callbackInfoReturnable.setReturnValue(PiglinArmPose.ADMIRING_ITEM);
         }
     }
 
     @Inject(at = @At(value = "HEAD"), method = "addToInventory", cancellable = true)
-    private void onAddToInventory(ItemStack stack, CallbackInfoReturnable<ItemStack> callbackInfoReturnable) {
+    private void onAddToInventory(ItemStack stack, CallbackInfoReturnable<ItemStack> cir) {
         if(PiglinTasksHelper.isBarterItem(stack)){
             CompoundTag compoundNBT = stack.getOrCreateTag();
             ItemStack remainder = GreedHelper.addGreedItemToGreedInventory(this, stack, compoundNBT.getBoolean(GreedHelper.BARTERED));
-            callbackInfoReturnable.setReturnValue(remainder);
+            cir.setReturnValue(remainder);
         }
     }
 
@@ -67,8 +64,8 @@ public abstract class PiglinEntityMixin extends AbstractPiglin implements IShake
     }
 
     @Inject(at = @At("RETURN"), method = "mobInteract", cancellable = true)
-    private void processInteraction(Player playerEntity, InteractionHand handIn, CallbackInfoReturnable<InteractionResult> callbackInfoReturnable){
-        InteractionResult actionResultType = callbackInfoReturnable.getReturnValue();
+    private void processInteraction(Player playerEntity, InteractionHand handIn, CallbackInfoReturnable<InteractionResult> cir){
+        InteractionResult actionResultType = cir.getReturnValue();
 
         if(!actionResultType.consumesAction()){
             // check greed action result type
@@ -81,7 +78,7 @@ public abstract class PiglinEntityMixin extends AbstractPiglin implements IShake
 
         // handle final action result type now
         if(!actionResultType.consumesAction()){
-            this.setShakeHeadTicks(NO_TICKS);
+            this.setShakeHeadTicks(IShakesHead.DEFAULT_SHAKE_TICKS);
 
             this.playSound(SoundEvents.PIGLIN_ANGRY, this.getSoundVolume(), this.getVoicePitch());
             if(!this.level.isClientSide){
@@ -94,18 +91,7 @@ public abstract class PiglinEntityMixin extends AbstractPiglin implements IShake
                 this.level.broadcastEntityEvent(this, (byte) GeneralHelper.ACCEPT_ID);
             }
         }
-        callbackInfoReturnable.setReturnValue(actionResultType);
-    }
-    @Inject(at = @At("HEAD"), method = "dropCustomDeathLoot", cancellable = true)
-    private void dropSpecialItems(CallbackInfo callbackInfo){
-        //AgeableHelper.dropAllFoodItems(this);
-        GreedHelper.dropGreedItems(this);
-    }
-
-    @Inject(at = @At("HEAD"), method = "finishConversion", cancellable = true)
-    private void zombify(CallbackInfo callbackInfo){
-        //AgeableHelper.dropAllFoodItems(this);
-        GreedHelper.dropGreedItems(this);
+        cir.setReturnValue(actionResultType);
     }
 
     @OnlyIn(Dist.CLIENT)

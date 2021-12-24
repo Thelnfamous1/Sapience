@@ -29,12 +29,6 @@ public class FieldModification {
                 .addAll(Hoglin.MEMORY_TYPES)
                 .add(MemoryModuleType.ATE_RECENTLY)
                 .add(MemoryModuleType.NEAREST_VISIBLE_WANTED_ITEM)
-                /*
-                .add(MemoryModuleType.ADMIRING_ITEM)
-                .add(MemoryModuleType.TIME_TRYING_TO_REACH_ADMIRE_ITEM)
-                .add(MemoryModuleType.ADMIRING_DISABLED)
-
-                 */
                 .build();
     }
 }

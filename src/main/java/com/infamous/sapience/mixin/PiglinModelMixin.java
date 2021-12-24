@@ -22,7 +22,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(PiglinModel.class)
 public abstract class PiglinModelMixin<T extends Mob> extends PlayerModel<T> {
 
-
     @Shadow
     @Final
     private PartPose headDefault;

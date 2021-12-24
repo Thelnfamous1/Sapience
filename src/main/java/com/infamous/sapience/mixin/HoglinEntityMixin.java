@@ -23,8 +23,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(Hoglin.class)
 public abstract class HoglinEntityMixin extends Animal implements Enemy, HoglinBase {
 
-    protected HoglinEntityMixin(EntityType<? extends Animal> p_i48568_1_, Level p_i48568_2_) {
-        super(p_i48568_1_, p_i48568_2_);
+    protected HoglinEntityMixin(EntityType<? extends Animal> entityType, Level level) {
+        super(entityType, level);
     }
 
     @Inject(at = @At("RETURN"), method = "isFood", cancellable = true)

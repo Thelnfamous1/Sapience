@@ -1,17 +1,29 @@
 package com.infamous.sapience.util;
 
 import com.infamous.sapience.Sapience;
+import com.infamous.sapience.mixin.AnimalMakeLoveAccessor;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.tags.EntityTypeTags;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.core.particles.ParticleOptions;
+import net.minecraft.world.entity.ai.behavior.AnimalMakeLove;
+import net.minecraft.world.entity.ai.behavior.Behavior;
+import net.minecraft.world.entity.ai.memory.MemoryModuleType;
+import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.entity.monster.hoglin.Hoglin;
+import net.minecraft.world.entity.monster.piglin.AbstractPiglin;
+import net.minecraft.world.entity.monster.piglin.StartAdmiringItemIfSeen;
+import net.minecraft.world.entity.monster.piglin.StopHoldingItemIfNoLongerAdmiring;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.common.Tags;
 import org.jetbrains.annotations.NotNull;
+
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class GeneralHelper {
     public static final int ANGER_ID = 16;
@@ -46,4 +58,5 @@ public class GeneralHelper {
     public static EntityType<?> maybeSpoofPiglinsHunt(Entity entity) {
         return entity.getType().is(PiglinTasksHelper.PIGLINS_HUNT) ? EntityType.HOGLIN : entity.getType();
     }
+
 }

@@ -15,11 +15,11 @@ import net.minecraft.world.entity.monster.piglin.Piglin;
 import net.minecraft.world.item.*;
 import net.minecraftforge.common.Tags;
 import net.minecraftforge.common.util.LazyOptional;
+import org.jetbrains.annotations.NotNull;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class GreedHelper {
 
@@ -47,9 +47,19 @@ public class GreedHelper {
     public static void dropGreedItems(LivingEntity mobEntity){
         IGreed greed = getGreedCapability(mobEntity);
         if(greed != null){
-            greed.getGreedInventory().removeAllItems().stream()
-                    .filter(GreedHelper::wasNotTraded) // Filter out traded items
+            getGreedItemsForDrop(mobEntity) // Filter out traded items
                     .forEach(mobEntity::spawnAtLocation);
+        }
+    }
+
+    public static Collection<ItemStack> getGreedItemsForDrop(LivingEntity mobEntity) {
+        IGreed greed = getGreedCapability(mobEntity);
+        if(greed != null){
+            return greed.getGreedInventory().removeAllItems().stream()
+                    .filter(GreedHelper::wasNotTraded)
+                    .collect(Collectors.toList());
+        } else{
+            return Collections.emptyList();
         }
     }
 
