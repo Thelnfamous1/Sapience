@@ -46,6 +46,7 @@ public class ForgeEventHandler {
     public static final String REPUTATION_DISPLAY_LOCALIZATION = "sapience.reputation_display";
 
     private static final ThreadLocal<Map<Piglin, Boolean>> THREADED_SKIP_MOUNT_CHECKS = ThreadLocal.withInitial(WeakHashMap::new);
+    private static final ThreadLocal<Boolean> THREADED_SKIP_INTERACT_CHECK = ThreadLocal.withInitial(() -> false);
 
     @SubscribeEvent
     public static void onAttachEntityCapabilities(AttachCapabilitiesEvent<Entity> event) {
@@ -235,6 +236,19 @@ public class ForgeEventHandler {
                     PiglinTasksHelper.setAteRecently(piglin);
                     ReputationHelper.updatePreviousInteractorReputation(piglin, PiglinReputationType.FOOD_GIFT);
                 }
+            }
+        }
+    }
+
+    @SubscribeEvent
+    public static void onEntityInteract(PlayerInteractEvent.EntityInteract event){
+        Player player = event.getPlayer();
+        InteractionHand hand = event.getHand();
+        Entity target = event.getTarget();
+        if(target instanceof Piglin){
+            if(!THREADED_SKIP_INTERACT_CHECK.get()){
+                event.setCanceled(true);
+                player.interactOn(target, hand);
             }
         }
     }
