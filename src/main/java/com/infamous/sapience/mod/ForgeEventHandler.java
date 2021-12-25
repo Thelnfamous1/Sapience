@@ -60,6 +60,8 @@ public class ForgeEventHandler {
             if(piglin.isBaby() && !entity.level.isClientSide){
                 AgeableHelper.initializeChild(piglin);
             }
+
+            // Better, Forge-supported way of adding tasks to entity brains
             BrainHelper
                     .retrieveFirstAvailableTask(piglin.getBrain(), Activity.IDLE, 16, b -> b instanceof RunOne<?>)
                     .map(RunOne.class::cast)

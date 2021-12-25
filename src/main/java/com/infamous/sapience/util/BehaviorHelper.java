@@ -6,9 +6,11 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.behavior.AnimalMakeLove;
 import net.minecraft.world.entity.ai.behavior.Behavior;
+import net.minecraft.world.entity.ai.behavior.StartAttacking;
 import net.minecraft.world.entity.ai.memory.MemoryModuleType;
 import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.entity.monster.Zoglin;
 import net.minecraft.world.entity.monster.piglin.AbstractPiglin;
 import net.minecraft.world.entity.monster.piglin.RememberIfHoglinWasKilled;
 import net.minecraft.world.entity.monster.piglin.StartAdmiringItemIfSeen;
@@ -25,6 +27,8 @@ public class BehaviorHelper {
                     .orElse(canStartVanilla);
         } else if(behavior instanceof StopHoldingItemIfNoLongerAdmiring<?> && entity instanceof AbstractPiglin piglin){
             return canStartVanilla && !PiglinTasksHelper.hasConsumableOffhandItem(piglin);
+        } else if(behavior instanceof StartAttacking<?> && entity instanceof Zoglin zoglin){
+            return ZoglinTasksHelper.findNearestValidAttackTarget(zoglin).filter(zoglin::canAttack).isPresent();
         } else{
             return canStartVanilla;
         }
@@ -63,6 +67,9 @@ public class BehaviorHelper {
                         }
                     }
             );
+            return false;
+        } else if(behavior instanceof StartAttacking<?> && entity instanceof Zoglin zoglin){
+            ZoglinTasksHelper.findNearestValidAttackTarget(zoglin).ifPresent(le -> ZoglinTasksHelper.setAttackTarget(zoglin, le));
             return false;
         }
         return true;

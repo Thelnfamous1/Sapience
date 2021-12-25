@@ -46,6 +46,7 @@ public abstract class BehaviorMixin<E extends LivingEntity> {
         }
     }
 
+    // Potential Forge PR
     // Used to run custom "start" logic instead of the original behavior's start logic
     private boolean preStart(ServerLevel serverLevel, E entity, long gameTime){
         return BehaviorHelper.handleSapienceBehaviorPreStart(this.cast(), serverLevel, entity);
@@ -64,6 +65,8 @@ public abstract class BehaviorMixin<E extends LivingEntity> {
         BehaviorHelper.handleSapienceBehaviorPostStart(this.cast(), serverLevel, entity);
     }
 
+    // Potential Forge PR
+    // Used to modify the outcome of a checkExtraStartCondition call
     private boolean enhancedCESC(ServerLevel serverLevel, E entity) {
         return BehaviorHelper.handleSapienceBehaviorCESC(this.cast(), entity, this.checkExtraStartConditions(serverLevel, entity));
     }

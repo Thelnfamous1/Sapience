@@ -15,6 +15,7 @@ import net.minecraft.world.entity.ai.memory.MemoryModuleType;
 import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.entity.monster.hoglin.Hoglin;
 import net.minecraft.world.entity.monster.piglin.AbstractPiglin;
+import net.minecraft.world.entity.monster.piglin.Piglin;
 import net.minecraft.world.entity.monster.piglin.StartAdmiringItemIfSeen;
 import net.minecraft.world.entity.monster.piglin.StopHoldingItemIfNoLongerAdmiring;
 import net.minecraftforge.api.distmarker.Dist;
@@ -30,7 +31,6 @@ public class GeneralHelper {
     public static final int DECLINE_ID = 6;
     public static final int ACCEPT_ID = 8;
 
-    public static final Tags.IOptionalNamedTag<EntityType<?>> ZOGLINS_IGNORE = EntityTypeTags.createOptional(new ResourceLocation(Sapience.MODID, "zoglins_ignore"));
     public static final Tags.IOptionalNamedTag<EntityType<?>> BOSSES = EntityTypeTags.createOptional(new ResourceLocation(Sapience.MODID, "bosses"));
 
     @OnlyIn(Dist.CLIENT)
@@ -55,8 +55,15 @@ public class GeneralHelper {
         return entity instanceof Hoglin ? EntityType.HOGLIN : entity.getType();
     }
 
+    public static EntityType<?> maybeSpoofHoglinOrPiglin(Entity entity) {
+        return entity instanceof Hoglin ? EntityType.HOGLIN : entity instanceof Piglin ? EntityType.PIGLIN : entity.getType();
+    }
+
     public static EntityType<?> maybeSpoofPiglinsHunt(Entity entity) {
         return entity.getType().is(PiglinTasksHelper.PIGLINS_HUNT) ? EntityType.HOGLIN : entity.getType();
     }
 
+    public static EntityType<?> maybeSpoofPiglin(Entity entity) {
+        return entity instanceof Piglin ? EntityType.PIGLIN : entity.getType();
+    }
 }
