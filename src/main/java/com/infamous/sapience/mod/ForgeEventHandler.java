@@ -12,6 +12,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ReputationEventHandler;
 import net.minecraft.world.entity.ai.behavior.Behavior;
@@ -29,13 +30,13 @@ import net.minecraft.world.entity.schedule.Activity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.event.AttachCapabilitiesEvent;
 import net.minecraftforge.event.entity.EntityJoinWorldEvent;
+import net.minecraftforge.event.entity.EntityMountEvent;
 import net.minecraftforge.event.entity.living.*;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
-import java.util.Collection;
-import java.util.Optional;
+import java.util.*;
 
 @Mod.EventBusSubscriber(modid = Sapience.MODID)
 public class ForgeEventHandler {
@@ -44,6 +45,8 @@ public class ForgeEventHandler {
     public static final ResourceLocation GREED_LOCATION = new ResourceLocation(Sapience.MODID, "greed");
     public static final ResourceLocation REPUTATION_LOCATION = new ResourceLocation(Sapience.MODID, "reputation");
     public static final String REPUTATION_DISPLAY_LOCALIZATION = "sapience.reputation_display";
+
+    private static final Map<Piglin, Boolean> SKIP_MOUNT_CHECK = new HashMap<>();
 
     @SubscribeEvent
     public static void onAttachEntityCapabilities(AttachCapabilitiesEvent<Entity> event) {
@@ -192,5 +195,31 @@ public class ForgeEventHandler {
                 drops.add(itemEntity);
             });
         }
+    }
+
+    @SubscribeEvent
+    public static void onMount(EntityMountEvent event){
+        if(event.getEntity() instanceof Piglin piglin && piglin.isBaby() && event.isMounting()){
+            if(event.getWorldObj().isClientSide){
+
+            } else{
+                if(SKIP_MOUNT_CHECK.getOrDefault(piglin, false)){
+
+                }
+            }
+            Entity mount = event.getEntityBeingMounted();
+            if(mount instanceof Hoglin && mount.getType() != EntityType.HOGLIN){
+                event.setCanceled(true);
+                SKIP_MOUNT_CHECK.put(piglin, true);
+                piglin.startRiding(getTopPassenger(mount, 3), true);
+            }
+        }
+    }
+
+    private static Entity getTopPassenger(Entity mount, int index) {
+        List<Entity> passengers = mount.getPassengers();
+        return index != 1 && !passengers.isEmpty() ?
+                getTopPassenger(passengers.get(0), index - 1) :
+                mount;
     }
 }

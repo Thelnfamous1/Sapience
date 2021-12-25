@@ -162,10 +162,4 @@ public abstract class PiglinEntityMixin extends AbstractPiglin implements IShake
             ReputationHelper.setPreviousInteractor(this, throwerEntity);
         }
     }
-
-    @Redirect(at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/Entity;getType()Lnet/minecraft/world/entity/EntityType;"), method = "startRiding")
-    private static EntityType<?> redirectEntityTypeCheckFleeing(Entity vehicle){
-        // spoofs the check for the hoglin entity type if it is a mob that can be "tower ridden" by baby piglins
-        return GeneralHelper.maybeSpoofHoglin(vehicle);
-    }
 }
