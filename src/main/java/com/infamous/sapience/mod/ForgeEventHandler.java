@@ -15,8 +15,6 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ReputationEventHandler;
-import net.minecraft.world.entity.ai.behavior.Behavior;
-import net.minecraft.world.entity.ai.behavior.GateBehavior;
 import net.minecraft.world.entity.ai.behavior.GoToWantedItem;
 import net.minecraft.world.entity.ai.behavior.RunOne;
 import net.minecraft.world.entity.item.ItemEntity;
@@ -27,6 +25,7 @@ import net.minecraft.world.entity.monster.piglin.PiglinBrute;
 import net.minecraft.world.entity.npc.Villager;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.schedule.Activity;
+import net.minecraft.world.food.FoodProperties;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.event.AttachCapabilitiesEvent;
 import net.minecraftforge.event.entity.EntityJoinWorldEvent;
@@ -46,7 +45,7 @@ public class ForgeEventHandler {
     public static final ResourceLocation REPUTATION_LOCATION = new ResourceLocation(Sapience.MODID, "reputation");
     public static final String REPUTATION_DISPLAY_LOCALIZATION = "sapience.reputation_display";
 
-    private static final Map<Piglin, Boolean> SKIP_MOUNT_CHECK = new HashMap<>();
+    private static final ThreadLocal<Map<Piglin, Boolean>> THREADED_SKIP_MOUNT_CHECKS = ThreadLocal.withInitial(WeakHashMap::new);
 
     @SubscribeEvent
     public static void onAttachEntityCapabilities(AttachCapabilitiesEvent<Entity> event) {
@@ -200,17 +199,17 @@ public class ForgeEventHandler {
     @SubscribeEvent
     public static void onMount(EntityMountEvent event){
         if(event.getEntity() instanceof Piglin piglin && piglin.isBaby() && event.isMounting()){
-            if(event.getWorldObj().isClientSide){
 
-            } else{
-                if(SKIP_MOUNT_CHECK.getOrDefault(piglin, false)){
-
-                }
+            Map<Piglin, Boolean> skipMountChecks = THREADED_SKIP_MOUNT_CHECKS.get();
+            if (skipMountChecks.getOrDefault(piglin, false)) {
+                skipMountChecks.remove(piglin);
+                return;
             }
+
             Entity mount = event.getEntityBeingMounted();
             if(mount instanceof Hoglin && mount.getType() != EntityType.HOGLIN){
                 event.setCanceled(true);
-                SKIP_MOUNT_CHECK.put(piglin, true);
+                skipMountChecks.put(piglin, true);
                 piglin.startRiding(getTopPassenger(mount, 3), true);
             }
         }
@@ -221,5 +220,22 @@ public class ForgeEventHandler {
         return index != 1 && !passengers.isEmpty() ?
                 getTopPassenger(passengers.get(0), index - 1) :
                 mount;
+    }
+
+    @SubscribeEvent
+    public static void onFinishUsingItem(LivingEntityUseItemEvent.Finish event){
+        if(event.getEntityLiving() instanceof Piglin piglin){
+            ItemStack itemStack = event.getItem();
+            FoodProperties foodProperties = itemStack.getItem().getFoodProperties();
+            if (foodProperties != null) {
+                int nutrition = foodProperties.getNutrition();
+                piglin.heal(nutrition); // heals the piglin by an amount equal to the food's hunger value
+                AgeableHelper.increaseFoodLevel(piglin, nutrition);
+                if(!piglin.level.isClientSide){
+                    PiglinTasksHelper.setAteRecently(piglin);
+                    ReputationHelper.updatePreviousInteractorReputation(piglin, PiglinReputationType.FOOD_GIFT);
+                }
+            }
+        }
     }
 }

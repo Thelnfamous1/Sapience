@@ -32,7 +32,7 @@ public class HoglinTasksHelper {
         } else if (animalEntity.getBrain().hasMemoryValue(MemoryModuleType.ATTACK_TARGET)) {
             return false;
         } else {
-            if (itemStack.is(HoglinTasksHelper.HOGLIN_FOOD_ITEMS)) {
+            if (animalEntity.isFood(itemStack)) {
                 return !hasAteRecently(animalEntity);
             }
             else{

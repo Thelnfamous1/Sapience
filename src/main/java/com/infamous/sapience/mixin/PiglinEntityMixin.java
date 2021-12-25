@@ -117,22 +117,6 @@ public abstract class PiglinEntityMixin extends AbstractPiglin implements IShake
         }
     }
 
-    @Override
-    public ItemStack eat(Level world, ItemStack itemStack) {
-        FoodProperties foodProperties = itemStack.getItem().getFoodProperties();
-        if (foodProperties != null) {
-            int nutrition = foodProperties.getNutrition();
-            this.heal(nutrition); // heals the piglin by an amount equal to the food's hunger value
-            AgeableHelper.increaseFoodLevel(this, nutrition);
-            if(!world.isClientSide){
-                PiglinTasksHelper.setAteRecently(this);
-                ReputationHelper.updatePreviousInteractorReputation(this, PiglinReputationType.FOOD_GIFT);
-            }
-        }
-
-        return super.eat(world, itemStack);
-    }
-
     @Inject(at = @At("RETURN"), method = "defineSynchedData")
     private void registerData(CallbackInfo callbackInfo){
         this.entityData.define(SHAKE_HEAD_TICKS, 0);
