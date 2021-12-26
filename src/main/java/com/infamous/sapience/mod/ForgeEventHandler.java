@@ -7,10 +7,13 @@ import com.infamous.sapience.capability.greed.GreedProvider;
 import com.infamous.sapience.capability.reputation.ReputationProvider;
 import com.infamous.sapience.util.*;
 import net.minecraft.Util;
+import net.minecraft.advancements.CriteriaTriggers;
 import net.minecraft.network.chat.TranslatableComponent;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
@@ -32,6 +35,7 @@ import net.minecraftforge.event.entity.EntityJoinWorldEvent;
 import net.minecraftforge.event.entity.EntityMountEvent;
 import net.minecraftforge.event.entity.living.*;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
+import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
@@ -45,8 +49,8 @@ public class ForgeEventHandler {
     public static final ResourceLocation REPUTATION_LOCATION = new ResourceLocation(Sapience.MODID, "reputation");
     public static final String REPUTATION_DISPLAY_LOCALIZATION = "sapience.reputation_display";
 
-    private static final ThreadLocal<Map<Piglin, Boolean>> THREADED_SKIP_MOUNT_CHECKS = ThreadLocal.withInitial(WeakHashMap::new);
-    private static final ThreadLocal<Boolean> THREADED_SKIP_INTERACT_CHECK = ThreadLocal.withInitial(() -> false);
+    private static final ThreadLocal<Map<Piglin, Boolean>> THREADED_SKIP_MOUNT_CHECKS = ThreadLocal.withInitial(HashMap::new);
+    private static final ThreadLocal<Map<Player, Boolean>> THREADED_SKIP_INTERACT_CHECKS = ThreadLocal.withInitial(HashMap::new);
 
     @SubscribeEvent
     public static void onAttachEntityCapabilities(AttachCapabilitiesEvent<Entity> event) {
@@ -202,18 +206,23 @@ public class ForgeEventHandler {
         if(event.getEntity() instanceof Piglin piglin && piglin.isBaby() && event.isMounting()){
 
             Map<Piglin, Boolean> skipMountChecks = THREADED_SKIP_MOUNT_CHECKS.get();
-            if (skipMountChecks.getOrDefault(piglin, false)) {
-                skipMountChecks.remove(piglin);
-                return;
-            }
+            if (checkSkipMap(piglin, skipMountChecks)) return;
 
             Entity mount = event.getEntityBeingMounted();
             if(mount instanceof Hoglin && mount.getType() != EntityType.HOGLIN){
                 event.setCanceled(true);
                 skipMountChecks.put(piglin, true);
-                piglin.startRiding(getTopPassenger(mount, 3), true);
+                piglin.startRiding(getTopPassenger(mount, 3));
             }
         }
+    }
+
+    private static boolean checkSkipMap(Entity entity, Map<? extends Entity, Boolean> skipMap) {
+        if (skipMap.getOrDefault(entity, false)) {
+            skipMap.remove(entity);
+            return true;
+        }
+        return false;
     }
 
     private static Entity getTopPassenger(Entity mount, int index) {
@@ -240,15 +249,27 @@ public class ForgeEventHandler {
         }
     }
 
-    @SubscribeEvent
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
     public static void onEntityInteract(PlayerInteractEvent.EntityInteract event){
         Player player = event.getPlayer();
         InteractionHand hand = event.getHand();
+        ItemStack stack = player.getItemInHand(hand);
         Entity target = event.getTarget();
         if(target instanceof Piglin){
-            if(!THREADED_SKIP_INTERACT_CHECK.get()){
-                event.setCanceled(true);
-                player.interactOn(target, hand);
+            Map<Player, Boolean> skipInteractChecks = THREADED_SKIP_INTERACT_CHECKS.get();
+            if (checkSkipMap(player, skipInteractChecks)) return;
+
+            event.setCanceled(true);
+            skipInteractChecks.put(player, true);
+
+            InteractionResult interactionResult = player.interactOn(target, hand);
+            if(player instanceof ServerPlayer serverPlayer){
+                if (interactionResult.consumesAction()) {
+                    CriteriaTriggers.PLAYER_INTERACTED_WITH_ENTITY.trigger(serverPlayer, stack, target);
+                    if (interactionResult.shouldSwing()) {
+                        player.swing(hand, true);
+                    }
+                }
             }
         }
     }
