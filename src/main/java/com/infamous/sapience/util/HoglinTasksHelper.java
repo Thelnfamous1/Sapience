@@ -1,6 +1,9 @@
 package com.infamous.sapience.util;
 
 import com.infamous.sapience.Sapience;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.Brain;
@@ -10,6 +13,7 @@ import net.minecraft.world.entity.monster.piglin.AbstractPiglin;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.monster.hoglin.Hoglin;
 import net.minecraft.world.entity.animal.Animal;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -18,6 +22,7 @@ import net.minecraft.tags.ItemTags;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.Level;
 import net.minecraftforge.common.Tags;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.Optional;
 
@@ -91,5 +96,22 @@ public class HoglinTasksHelper {
         brain.setMemory(MemoryModuleType.NEAREST_VISIBLE_ADULT_PIGLIN, optionalNearestPiglin);
         brain.setMemory(MemoryModuleType.VISIBLE_ADULT_PIGLIN_COUNT, visiblePiglinCount);
 
+    }
+
+    public static void handleHoglinInteractPost(Hoglin hoglin, Player playerEntity, InteractionHand hand, InteractionResult interactionResult) {
+        ItemStack stack = playerEntity.getItemInHand(hand);
+        if(interactionResult.consumesAction()){
+            if(hoglin.isFood(stack) && !hoglin.level.isClientSide){
+                setAteRecently(hoglin);
+            }
+            else if(hoglin.level.isClientSide){
+                hoglin.playSound(SoundEvents.HOGLIN_AMBIENT, 1.0F, hoglin.getVoicePitch());
+            }
+        }
+        else{
+            if(hoglin.level.isClientSide){
+                hoglin.playSound(SoundEvents.HOGLIN_ANGRY, 1.0F, hoglin.getVoicePitch());
+            }
+        }
     }
 }

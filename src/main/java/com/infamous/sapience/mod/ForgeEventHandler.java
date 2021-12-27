@@ -249,28 +249,23 @@ public class ForgeEventHandler {
         }
     }
 
-    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    @SubscribeEvent
     public static void onEntityInteract(PlayerInteractEvent.EntityInteract event){
         Player player = event.getPlayer();
-        InteractionHand hand = event.getHand();
-        ItemStack stack = player.getItemInHand(hand);
         Entity target = event.getTarget();
-        if(target instanceof Piglin){
-            Map<Player, Boolean> skipInteractChecks = THREADED_SKIP_INTERACT_CHECKS.get();
-            if (checkSkipMap(player, skipInteractChecks)) return;
-
-            event.setCanceled(true);
-            skipInteractChecks.put(player, true);
-
-            InteractionResult interactionResult = player.interactOn(target, hand);
-            if(player instanceof ServerPlayer serverPlayer){
-                if (interactionResult.consumesAction()) {
-                    CriteriaTriggers.PLAYER_INTERACTED_WITH_ENTITY.trigger(serverPlayer, stack, target);
-                    if (interactionResult.shouldSwing()) {
-                        player.swing(hand, true);
-                    }
+        InteractionHand hand = event.getHand();
+        ItemStack stack = event.getItemStack();
+        if(target instanceof Piglin piglin){
+            if(player.isSecondaryUseActive()){
+                event.setCancellationResult(InteractionResult.PASS);
+            } else {
+                InteractionResult piglinInteractResult = PiglinTasksHelper.handlePiglinInteraction(piglin, player, hand);
+                if(piglinInteractResult.consumesAction()){
+                    event.setCancellationResult(piglinInteractResult);
+                    GeneralHelper.handleCustomPostInteract(player, hand, stack, piglinInteractResult);
                 }
             }
         }
     }
+
 }

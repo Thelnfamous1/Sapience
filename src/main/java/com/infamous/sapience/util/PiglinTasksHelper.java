@@ -2,6 +2,7 @@ package com.infamous.sapience.util;
 
 import com.google.common.collect.Lists;
 import com.infamous.sapience.Sapience;
+import com.infamous.sapience.mod.IShakesHead;
 import com.infamous.sapience.mod.ModMemoryModuleTypes;
 import com.infamous.sapience.tasks.CraftWithGoldTask;
 import com.infamous.sapience.tasks.CreateBabyTask;
@@ -10,6 +11,7 @@ import com.infamous.sapience.tasks.ShareGoldTask;
 import com.mojang.datafixers.util.Pair;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.sounds.SoundEvents;
 import net.minecraft.tags.EntityTypeTags;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.util.TimeUtil;
@@ -440,5 +442,38 @@ public class PiglinTasksHelper {
                 Pair.of(new CraftWithGoldTask<>(), 2),
                 Pair.of(new FeedHoglinsTask<>(), 2)
         );
+    }
+
+    public static InteractionResult handlePiglinInteraction(Piglin piglin, Player playerEntity, InteractionHand handIn) {
+        InteractionResult interactionResult = InteractionResult.PASS;
+        if(!interactionResult.consumesAction()){
+            // check greed action result type
+            interactionResult = getGreedActionResultType(piglin, playerEntity, handIn, interactionResult);
+            if(!interactionResult.consumesAction()){
+                // check ageable action result type
+                interactionResult = getAgeableActionResultType(piglin, playerEntity, handIn, interactionResult);
+            }
+        }
+        return interactionResult;
+    }
+
+    public static void handlePiglinInteractPost(Piglin piglin, Player player, InteractionResult interactionResult) {
+        if(!interactionResult.consumesAction()){
+            ((IShakesHead) piglin).setShakeHeadTicks(IShakesHead.DEFAULT_SHAKE_TICKS);
+
+            if(piglin.level.isClientSide){
+                piglin.playSound(SoundEvents.PIGLIN_ANGRY, 1.0F, piglin.getVoicePitch());
+            } else{
+                piglin.level.broadcastEntityEvent(piglin, (byte) GeneralHelper.DECLINE_ID);
+            }
+        }
+        else{
+            if(piglin.level.isClientSide){
+                piglin.playSound(SoundEvents.PIGLIN_CELEBRATE, 1.0F, piglin.getVoicePitch());
+            } else {
+                piglin.level.broadcastEntityEvent(piglin, (byte) GeneralHelper.ACCEPT_ID);
+                ReputationHelper.setPreviousInteractor(piglin, player);
+            }
+        }
     }
 }

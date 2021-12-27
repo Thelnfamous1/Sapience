@@ -46,15 +46,6 @@ public class PiglinTasksMixin {
         return shouldAvoid.get();
     }
 
-    /*
-    @Inject(at = @At("RETURN"), method = "createIdleMovementBehaviors", cancellable = true)
-    private static void getLookTasks(CallbackInfoReturnable<RunOne<Piglin>> callbackInfoReturnable){
-        RunOne<Piglin> piglinRunOne = callbackInfoReturnable.getReturnValue();
-
-        PiglinTasksHelper.addAdditionalIdleMovementBehaviors(piglinRunOne);
-    }
-     */
-
     @Inject(at = @At("HEAD"), method = "setAngerTarget")
     private static void setAngerTarget(AbstractPiglin piglinEntity, LivingEntity target, CallbackInfo callbackInfo){
         if(piglinEntity.canAttack(target)){
@@ -73,23 +64,16 @@ public class PiglinTasksMixin {
             ItemStack extractedItemStack = PiglinTasksHelper.extractSingletonFromItemEntity(itemEntity);
             // Needed to get the piglin to stop trying to pick up its food item once it's been picked up
             PiglinTasksHelper.removeTimeTryingToReachAdmireItem(piglinEntity);
-            //PiglinTasksHelper.addToFoodInventoryThenDropRemainder(piglinEntity, extractedItemStack);
             PiglinTasksHelper.dropOffhandItemAndSetItemStackToOffhand(piglinEntity, extractedItemStack);
             PiglinTasksHelper.setAdmiringItem(piglinEntity);
             PiglinTasksHelper.clearWalkPath(piglinEntity);
-            /*
-            if(!PiglinTasksHelper.hasAteRecently(piglinEntity)){
-                PiglinTasksHelper.setAteRecently(piglinEntity);
-            }
-             */
             callbackInfo.cancel();
         }
     }
 
     @Inject(at = @At("RETURN"), method = "isFood", cancellable = true)
     private static void isPiglinFoodItem(ItemStack item, CallbackInfoReturnable<Boolean> callbackInfoReturnable){
-        boolean isPiglinFoodItem = PiglinTasksHelper.isPiglinFoodItem(item);
-        callbackInfoReturnable.setReturnValue(isPiglinFoodItem);
+        callbackInfoReturnable.setReturnValue(PiglinTasksHelper.isPiglinFoodItem(item));
     }
 
 
@@ -183,14 +167,6 @@ public class PiglinTasksMixin {
                 .forEach((nearbyPiglin) -> ReputationHelper.updatePiglinReputation(nearbyPiglin, PiglinReputationType.GOLD_STOLEN, playerEntity));
 
         return filteredNearbyPiglinsList;
-    }
-
-    // used for processing the default interaction for receiving piglin currency
-    @Inject(at = @At("RETURN"), method = "mobInteract")
-    private static void processInteractionForPiglinCurrency(Piglin piglinEntity, Player playerEntity, InteractionHand hand, CallbackInfoReturnable<InteractionResult> callbackInfoReturnable){
-        if(callbackInfoReturnable.getReturnValue().consumesAction()){
-            ReputationHelper.setPreviousInteractor(piglinEntity, playerEntity);
-        }
     }
 
     @Inject(at = @At("RETURN"), method = "isZombified", cancellable = true)

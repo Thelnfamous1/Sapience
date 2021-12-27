@@ -5,6 +5,8 @@ import com.infamous.sapience.mixin.AnimalMakeLoveAccessor;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.tags.EntityTypeTags;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
@@ -18,6 +20,8 @@ import net.minecraft.world.entity.monster.piglin.AbstractPiglin;
 import net.minecraft.world.entity.monster.piglin.Piglin;
 import net.minecraft.world.entity.monster.piglin.StartAdmiringItemIfSeen;
 import net.minecraft.world.entity.monster.piglin.StopHoldingItemIfNoLongerAdmiring;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.common.Tags;
@@ -65,5 +69,19 @@ public class GeneralHelper {
 
     public static EntityType<?> maybeSpoofPiglin(Entity entity) {
         return entity instanceof Piglin ? EntityType.PIGLIN : entity.getType();
+    }
+
+    public static void handleCustomPostInteract(Player player, InteractionHand hand, ItemStack originalStack, InteractionResult interactionResult) {
+        ItemStack stackInHand = player.getItemInHand(hand);
+        ItemStack copyStack = originalStack.copy();
+        if (interactionResult.consumesAction()) {
+            if (player.getAbilities().instabuild && stackInHand == player.getItemInHand(hand) && stackInHand.getCount() < copyStack.getCount()) {
+                stackInHand.setCount(copyStack.getCount()); // restores stack count if in creative mode
+            }
+
+            if (!player.getAbilities().instabuild && stackInHand.isEmpty()) {
+                net.minecraftforge.event.ForgeEventFactory.onPlayerDestroyItem(player, copyStack, hand);
+            }
+        }
     }
 }

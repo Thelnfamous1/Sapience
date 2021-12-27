@@ -8,7 +8,6 @@ import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.Entity;
@@ -20,7 +19,6 @@ import net.minecraft.world.entity.monster.piglin.AbstractPiglin;
 import net.minecraft.world.entity.monster.piglin.Piglin;
 import net.minecraft.world.entity.monster.piglin.PiglinArmPose;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.food.FoodProperties;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraftforge.api.distmarker.Dist;
@@ -28,7 +26,6 @@ import net.minecraftforge.api.distmarker.OnlyIn;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
@@ -54,44 +51,6 @@ public abstract class PiglinEntityMixin extends AbstractPiglin implements IShake
             ItemStack remainder = GreedHelper.addGreedItemToGreedInventory(this, stack, compoundNBT.getBoolean(GreedHelper.BARTERED));
             cir.setReturnValue(remainder);
         }
-    }
-
-    @Inject(at = @At("HEAD"), method = "mobInteract", cancellable = true)
-    private void checkSecondaryUse(Player player, InteractionHand hand, CallbackInfoReturnable<InteractionResult> cir){
-        if(player.isSecondaryUseActive()){
-            cir.setReturnValue(super.mobInteract(player, hand));
-        }
-    }
-
-    @Inject(at = @At("RETURN"), method = "mobInteract", cancellable = true)
-    private void processInteraction(Player playerEntity, InteractionHand handIn, CallbackInfoReturnable<InteractionResult> cir){
-        InteractionResult actionResultType = cir.getReturnValue();
-
-        if(!actionResultType.consumesAction()){
-            // check greed action result type
-            actionResultType = PiglinTasksHelper.getGreedActionResultType(this, playerEntity, handIn, actionResultType);
-            if(!actionResultType.consumesAction()){
-                // check ageable action result type
-                actionResultType = PiglinTasksHelper.getAgeableActionResultType(this, playerEntity, handIn, actionResultType);
-            }
-        }
-
-        // handle final action result type now
-        if(!actionResultType.consumesAction()){
-            this.setShakeHeadTicks(IShakesHead.DEFAULT_SHAKE_TICKS);
-
-            this.playSound(SoundEvents.PIGLIN_ANGRY, this.getSoundVolume(), this.getVoicePitch());
-            if(!this.level.isClientSide){
-                this.level.broadcastEntityEvent(this, (byte) GeneralHelper.DECLINE_ID);
-            }
-        }
-        else{
-            this.playSound(SoundEvents.PIGLIN_CELEBRATE, this.getSoundVolume(), this.getVoicePitch());
-            if(!this.level.isClientSide){
-                this.level.broadcastEntityEvent(this, (byte) GeneralHelper.ACCEPT_ID);
-            }
-        }
-        cir.setReturnValue(actionResultType);
     }
 
     @OnlyIn(Dist.CLIENT)
