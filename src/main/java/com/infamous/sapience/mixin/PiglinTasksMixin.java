@@ -1,45 +1,32 @@
 package com.infamous.sapience.mixin;
 
 import com.infamous.sapience.SapienceConfig;
-import com.infamous.sapience.capability.ageable.Ageable;
-import com.infamous.sapience.util.*;
-import net.minecraft.nbt.CompoundTag;
+import com.infamous.sapience.util.GeneralHelper;
+import com.infamous.sapience.util.PiglinReputationType;
+import com.infamous.sapience.util.PiglinTasksHelper;
+import com.infamous.sapience.util.ReputationHelper;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.behavior.BehaviorUtils;
 import net.minecraft.world.entity.ai.memory.MemoryModuleType;
 import net.minecraft.world.entity.ai.sensing.Sensor;
-import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.monster.piglin.AbstractPiglin;
 import net.minecraft.world.entity.monster.piglin.Piglin;
 import net.minecraft.world.entity.monster.piglin.PiglinAi;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.ItemStack;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Mixin(PiglinAi.class)
 public class PiglinTasksMixin {
-
-    @Redirect(at = @At(value = "INVOKE",
-            target = "Lnet/minecraft/world/entity/monster/piglin/PiglinAi;isZombified(Lnet/minecraft/world/entity/EntityType;)Z"),
-            method = "wantsToStopFleeing")
-    private static boolean shouldAvoidZombified(EntityType<?> entityType, Piglin piglin){
-        return piglin.getBrain().getMemory(MemoryModuleType.AVOID_TARGET)
-                .map(le -> PiglinTasksHelper.piglinsAvoid(le.getType())
-                        && GeneralHelper.isNotOnSameTeam(piglin, le))
-                .orElse(false);
-    }
 
     @Inject(at = @At("HEAD"), method = "setAngerTarget")
     private static void setAngerTarget(AbstractPiglin piglinEntity, LivingEntity target, CallbackInfo callbackInfo){
@@ -80,21 +67,7 @@ public class PiglinTasksMixin {
 
         return filteredNearbyPiglinsList;
     }
-
-    // fixing hardcoded checks for "EntityType.ZOMBIFIED_PIGLIN" and "EntityType.ZOGLIN"
-
-    @Inject(at = @At("RETURN"), method = "isZombified", cancellable = true)
-    private static void handleZombified(EntityType<?> entityType, CallbackInfoReturnable<Boolean> cir){
-        cir.setReturnValue(PiglinTasksHelper.piglinsAvoid(entityType));
-    }
-
     // fixing hardcoded checks for "EntityType.HOGLIN"
-
-    @Redirect(at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/LivingEntity;getType()Lnet/minecraft/world/entity/EntityType;"), method = "wantsToDance")
-    private static EntityType<?> redirectEntityTypeCheckDance(LivingEntity victim){
-        // spoofs the check for the hoglin entity type if it is a mob that can be hunted by piglins
-        return GeneralHelper.maybeSpoofPiglinsHunt(victim);
-    }
 
     @Redirect(at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/LivingEntity;getType()Lnet/minecraft/world/entity/EntityType;"), method = "wasHurtBy")
     private static EntityType<?> redirectEntityTypeCheckHurt(LivingEntity attacker){
@@ -112,12 +85,6 @@ public class PiglinTasksMixin {
     private static EntityType<?> redirectEntityTypeCheckAnger(LivingEntity angerTarget){
         // spoofs the check for the hoglin entity type if it is a mob that can be hunted by piglins
         return GeneralHelper.maybeSpoofHoglin(angerTarget);
-    }
-
-    @Redirect(at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/LivingEntity;getType()Lnet/minecraft/world/entity/EntityType;"), method = "wantsToStopFleeing")
-    private static EntityType<?> redirectEntityTypeCheckFleeing(LivingEntity avoidTarget){
-        // spoofs the check for the hoglin entity type if it is a mob that can be hunted by piglins
-        return GeneralHelper.maybeSpoofHoglin(avoidTarget);
     }
 
 }

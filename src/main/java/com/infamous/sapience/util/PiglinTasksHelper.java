@@ -582,6 +582,9 @@ public class PiglinTasksHelper {
     }
 
     public static void stopHoldingOffHandItem(Piglin piglin, boolean doBarter) {
+        Entity interactor = ReputationHelper.getPreviousInteractor(piglin);
+        boolean willDropLoot = willDropLootFor(piglin, interactor);
+
         ItemStack offHandItem = piglin.getItemInHand(InteractionHand.OFF_HAND);
         piglin.setItemInHand(InteractionHand.OFF_HAND, ItemStack.EMPTY);
         if (piglin.isAdult()) {
@@ -650,5 +653,32 @@ public class PiglinTasksHelper {
     private static boolean willDropLootFor(Piglin piglinEntity, Entity interactorEntity) {
         return interactorEntity instanceof LivingEntity living && ReputationHelper.isAllowedToBarter(piglinEntity, living)
                 || interactorEntity == null && !SapienceConfig.COMMON.REQUIRE_LIVING_FOR_BARTER.get();
+    }
+
+    public static boolean wantsToStopFleeing(Piglin piglin) {
+        Brain<Piglin> brain = piglin.getBrain();
+        if (!brain.hasMemoryValue(MemoryModuleType.AVOID_TARGET)) {
+            return true;
+        } else {
+            LivingEntity avoidTarget = brain.getMemory(MemoryModuleType.AVOID_TARGET).get();
+            EntityType<?> entitytype = avoidTarget.getType();
+            if (avoidTarget instanceof Hoglin) {
+                return piglinsEqualOrOutnumberHoglins(piglin);
+            } else if (piglinsAvoid(entitytype)) {
+                return !brain.isMemoryValue(MemoryModuleType.NEAREST_VISIBLE_ZOMBIFIED, avoidTarget);
+            } else {
+                return false;
+            }
+        }
+    }
+
+    private static boolean piglinsEqualOrOutnumberHoglins(Piglin piglin) {
+        return !hoglinsOutnumberPiglins(piglin);
+    }
+
+    private static boolean hoglinsOutnumberPiglins(Piglin piglin) {
+        int piglins = piglin.getBrain().getMemory(MemoryModuleType.VISIBLE_ADULT_PIGLIN_COUNT).orElse(0) + 1;
+        int hoglins = piglin.getBrain().getMemory(MemoryModuleType.VISIBLE_ADULT_HOGLIN_COUNT).orElse(0);
+        return hoglins > piglins;
     }
 }

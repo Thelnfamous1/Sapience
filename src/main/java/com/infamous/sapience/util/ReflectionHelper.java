@@ -105,4 +105,8 @@ public class ReflectionHelper {
         return (boolean) callMethod("m_34787_", piglin, Piglin.class, new Object[]{stack}, new Class<?>[]{ItemStack.class}).get();
     }
 
+    public static MemoryModuleType<?> getMemoryTypeToErase(EraseMemoryIf<?> behavior){
+        return (MemoryModuleType<?>) accessField("f_22857_", behavior, EraseMemoryIf.class).get();
+    }
+
 }

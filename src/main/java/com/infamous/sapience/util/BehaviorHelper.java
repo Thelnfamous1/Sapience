@@ -3,10 +3,7 @@ package com.infamous.sapience.util;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.ai.behavior.AnimalMakeLove;
-import net.minecraft.world.entity.ai.behavior.Behavior;
-import net.minecraft.world.entity.ai.behavior.StartAttacking;
-import net.minecraft.world.entity.ai.behavior.StartCelebratingIfTargetDead;
+import net.minecraft.world.entity.ai.behavior.*;
 import net.minecraft.world.entity.ai.memory.MemoryModuleType;
 import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.entity.item.ItemEntity;
@@ -87,6 +84,10 @@ public class BehaviorHelper {
                 }
             });
             return false;
+        } else if(behavior instanceof EraseMemoryIf<?> emi
+                && ReflectionHelper.getMemoryTypeToErase(emi) == MemoryModuleType.AVOID_TARGET
+                && entity instanceof Piglin piglin){
+            return PiglinTasksHelper.wantsToStopFleeing(piglin);
         }
         return true;
     }
