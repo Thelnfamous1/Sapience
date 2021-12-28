@@ -72,7 +72,8 @@ public class BehaviorHelper {
             ZoglinTasksHelper.findNearestValidAttackTarget(zoglin).ifPresent(le -> ZoglinTasksHelper.setAttackTarget(zoglin, le));
             return false;
         } else if(behavior instanceof StopHoldingItemIfNoLongerAdmiring<?> && entity instanceof Piglin piglin){
-            PiglinTasksHelper.handleStopHoldingOffHandItem(piglin, true);
+            PiglinTasksHelper.stopHoldingOffHandItem(piglin, true);
+            return false;
         } else if(behavior instanceof StartCelebratingIfTargetDead scitd && entity instanceof Piglin piglin){
             GeneralHelper.getAttackTarget(piglin).ifPresent(le -> {
                 if (PiglinTasksHelper.wantsToDance(piglin, le)) {

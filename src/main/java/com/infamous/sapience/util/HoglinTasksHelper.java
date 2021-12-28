@@ -58,7 +58,7 @@ public class HoglinTasksHelper {
         }
     }
 
-    public static void pickUpBreedingItem(Animal animalEntity, ItemEntity itemEntity) {
+    public static void pickUpHoglinItem(Animal animalEntity, ItemEntity itemEntity) {
         animalEntity.take(itemEntity, 1);
         ItemStack temptationStack = itemEntity.getItem();
         ItemStack pickupStack = temptationStack.split(1);

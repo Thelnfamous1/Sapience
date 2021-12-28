@@ -101,4 +101,8 @@ public class ReflectionHelper {
         return (PartPose) accessField("f_103334_", piglinModel, PiglinModel.class).get();
     }
 
+    public static boolean callCanReplaceCurrentItem(Piglin piglin, ItemStack stack){
+        return (boolean) callMethod("m_34787_", piglin, Piglin.class, new Object[]{stack}, new Class<?>[]{ItemStack.class}).get();
+    }
+
 }

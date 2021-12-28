@@ -1,6 +1,7 @@
 package com.infamous.sapience.mixin;
 
 import com.infamous.sapience.util.HoglinTasksHelper;
+import com.infamous.sapience.util.PiglinTasksHelper;
 import com.infamous.sapience.util.ReputationHelper;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
@@ -65,14 +66,21 @@ public abstract class MobMixin extends LivingEntity {
     private void customPickUpItem(ItemEntity itemEntity) {
         if(this.cast() instanceof Hoglin hoglin){
             this.onItemPickup(itemEntity);
-            HoglinTasksHelper.pickUpBreedingItem(hoglin, itemEntity);
-        } else{
+            HoglinTasksHelper.pickUpHoglinItem(hoglin, itemEntity);
+        } else if(this.cast() instanceof Piglin piglin){
+            this.onItemPickup(itemEntity);
+            PiglinTasksHelper.pickUpPiglinItem(piglin, itemEntity);
+        }else{
             this.pickUpItem(itemEntity);
         }
     }
 
     private boolean customWantsToPickUp(ItemEntity itemEntity) {
-        return this.cast() instanceof Hoglin hoglin ? HoglinTasksHelper.wantsToPickUp(hoglin, itemEntity.getItem()) : this.wantsToPickUp(itemEntity.getItem());
+        return this.cast() instanceof Hoglin hoglin ?
+                HoglinTasksHelper.wantsToPickUp(hoglin, itemEntity.getItem()) :
+                this.cast() instanceof Piglin piglin ?
+                        PiglinTasksHelper.wantsToPickUp(piglin, itemEntity.getItem()) :
+                        this.wantsToPickUp(itemEntity.getItem());
     }
 
 }

@@ -48,40 +48,6 @@ public class PiglinTasksMixin {
         }
     }
 
-    @Inject(at =
-    @At(value = "INVOKE",
-            target = "Lnet/minecraft/world/entity/monster/piglin/PiglinAi;removeOneItemFromItemEntity(Lnet/minecraft/world/entity/item/ItemEntity;)Lnet/minecraft/world/item/ItemStack;"),
-            method = "pickUpItem",
-            cancellable = true)
-    private static void pickUpWantedItem(Piglin piglinEntity, ItemEntity itemEntity, CallbackInfo callbackInfo){
-        Ageable ageable = AgeableHelper.getAgeableCapability(piglinEntity);
-        if(ageable != null && PiglinTasksHelper.isPiglinFoodItem(itemEntity.getItem())){
-            ItemStack extractedItemStack = PiglinTasksHelper.extractSingletonFromItemEntity(itemEntity);
-            // Needed to get the piglin to stop trying to pick up its food item once it's been picked up
-            PiglinTasksHelper.removeTimeTryingToReachAdmireItem(piglinEntity);
-            PiglinTasksHelper.dropOffhandItemAndSetItemStackToOffhand(piglinEntity, extractedItemStack);
-            PiglinTasksHelper.setAdmiringItem(piglinEntity);
-            PiglinTasksHelper.clearWalkPath(piglinEntity);
-            callbackInfo.cancel();
-        }
-    }
-
-    @Inject(at = @At("RETURN"), method = "isFood", cancellable = true)
-    private static void isPiglinFoodItem(ItemStack item, CallbackInfoReturnable<Boolean> callbackInfoReturnable){
-        callbackInfoReturnable.setReturnValue(PiglinTasksHelper.isPiglinFoodItem(item));
-    }
-
-
-    @Inject(at = @At("RETURN"), method = "wantsToPickup", cancellable = true)
-    private static void canPickUpItemStack(Piglin piglinEntity, ItemStack itemStack, CallbackInfoReturnable<Boolean> callbackInfoReturnable){
-        boolean hasConsumableOffhandItem = PiglinTasksHelper.hasConsumableOffhandItem(piglinEntity);
-        boolean canPickUpItemStack = callbackInfoReturnable.getReturnValue();
-        if (PiglinTasksHelper.isPiglinFoodItem(itemStack)) {
-            canPickUpItemStack = PiglinTasksHelper.canPickUpFoodStack(piglinEntity, itemStack);
-        }
-        callbackInfoReturnable.setReturnValue(canPickUpItemStack && !hasConsumableOffhandItem);
-    }
-
     // When the piglin drops bartering loot after having been given piglin currency
     // The goal here is to prevent it dropping bartering loot if the player's rep is too low
     @Inject(at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/monster/piglin/PiglinAi;throwItems(Lnet/minecraft/world/entity/monster/piglin/Piglin;Ljava/util/List;)V", ordinal = 0), method = "stopHoldingOffHandItem", cancellable = true)
@@ -113,16 +79,6 @@ public class PiglinTasksMixin {
                 .forEach((nearbyPiglin) -> ReputationHelper.updatePiglinReputation(nearbyPiglin, PiglinReputationType.GOLD_STOLEN, playerEntity));
 
         return filteredNearbyPiglinsList;
-    }
-
-    @Inject(at = @At(value = "HEAD"), method = "putInInventory", cancellable = true)
-    private static void handlePutInInventory(Piglin piglin, ItemStack stack, CallbackInfo ci){
-        if(PiglinTasksHelper.isBarterItem(stack)){
-            CompoundTag compoundNBT = stack.getOrCreateTag();
-            ItemStack remainder = GreedHelper.addGreedItemToGreedInventory(piglin, stack, compoundNBT.getBoolean(GreedHelper.BARTERED));
-            PiglinTasksHelper.dropItemsAccountingForNearbyPlayer(piglin, Collections.singletonList(remainder));
-            ci.cancel();
-        }
     }
 
     // fixing hardcoded checks for "EntityType.ZOMBIFIED_PIGLIN" and "EntityType.ZOGLIN"

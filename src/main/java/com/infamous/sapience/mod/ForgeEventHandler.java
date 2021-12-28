@@ -127,7 +127,7 @@ public class ForgeEventHandler {
                     piglin,
                     piglin.isBaby() ? PiglinReputationType.BABY_PIGLIN_HURT : PiglinReputationType.ADULT_PIGLIN_HURT,
                     attacker);
-            PiglinTasksHelper.handleStopHoldingOffHandItem(piglin, false);
+            PiglinTasksHelper.stopHoldingOffHandItem(piglin, false);
         } else if(victim instanceof Hoglin hoglin && hoglin.isAdult() && attacker instanceof LivingEntity target){
             HoglinTasksHelper.maybeRetaliate(hoglin, target);
         } else if(attacker instanceof Hoglin hoglin){
@@ -268,6 +268,7 @@ public class ForgeEventHandler {
                 InteractionResult piglinInteractResult = PiglinTasksHelper.handlePiglinInteraction(piglin, player, hand);
                 if(piglinInteractResult.consumesAction()){
                     handleCustomInteraction(event, player, hand, stack, piglinInteractResult);
+                    PiglinTasksHelper.handlePiglinInteractPost(piglin, player, piglinInteractResult);
                 }
             }
         } else if(target instanceof Hoglin hoglin){
@@ -275,10 +276,12 @@ public class ForgeEventHandler {
                 InteractionResult hoglinInteractResult = GeneralHelper.handleGiveAnimalFood(hoglin, player, hand);
                 if(hoglinInteractResult.consumesAction()){
                     handleCustomInteraction(event, player, hand, stack, hoglinInteractResult);
+                    HoglinTasksHelper.handleHoglinInteractPost(hoglin, player, hand, InteractionResult.PASS);
                     hoglin.setPersistenceRequired();
                 }
             } else if(stack.is(Items.CRIMSON_FUNGUS)){
                 handleCustomInteraction(event, player, hand, stack, InteractionResult.PASS);
+                HoglinTasksHelper.handleHoglinInteractPost(hoglin, player, hand, InteractionResult.PASS);
             }
         }
     }
