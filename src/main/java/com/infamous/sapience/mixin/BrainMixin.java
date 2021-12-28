@@ -11,7 +11,7 @@ import net.minecraft.world.entity.monster.hoglin.Hoglin;
 import net.minecraft.world.entity.monster.piglin.Piglin;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.ModifyVariable;
+import org.spongepowered.asm.mixin.injection.ModifyArg;
 
 import java.util.Collection;
 
@@ -20,7 +20,7 @@ public class BrainMixin {
 
     // Potential Forge PR
     // Allows for modification of a mob's memory types before they are sent to the Brain.Provider
-    @ModifyVariable(at = @At("STORE"), method = "provider", argsOnly = true)
+    @ModifyArg(at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/ai/Brain$Provider;<init>(Ljava/util/Collection;Ljava/util/Collection;)V"), method = "provider", index = 0)
     private static Collection<? extends MemoryModuleType<?>> modifyMemoryTypes(Collection<? extends MemoryModuleType<?>> memoryTypes){
         if(memoryTypes == ReflectionHelper.getMEMORY_TYPES((Piglin) null)){
             return BrainHelper.addMemoryModules(memoryTypes,
@@ -38,7 +38,7 @@ public class BrainMixin {
 
     // Potential Forge PR
     // Allows for modification of a mob's sensor types before they are sent to the Brain.Provider
-    @ModifyVariable(at = @At("STORE"), method = "provider", argsOnly = true)
+    @ModifyArg(at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/ai/Brain$Provider;<init>(Ljava/util/Collection;Ljava/util/Collection;)V"), method = "provider", index = 1)
     private static Collection<? extends SensorType<? extends Sensor<?>>> modifySensorTypes(Collection<? extends SensorType<? extends Sensor<?>>> sensorTypes){
         if(sensorTypes == ReflectionHelper.getSENSOR_TYPES((Hoglin) null)){
             return BrainHelper.addSensorTypes(sensorTypes, SensorType.NEAREST_ITEMS);
