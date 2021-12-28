@@ -3,7 +3,7 @@ package com.infamous.sapience.util;
 import com.infamous.sapience.Sapience;
 import com.infamous.sapience.SapienceConfig;
 import com.infamous.sapience.capability.greed.GreedProvider;
-import com.infamous.sapience.capability.greed.IGreed;
+import com.infamous.sapience.capability.greed.Greed;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.SimpleContainer;
@@ -15,18 +15,16 @@ import net.minecraft.world.entity.monster.piglin.Piglin;
 import net.minecraft.world.item.*;
 import net.minecraftforge.common.Tags;
 import net.minecraftforge.common.util.LazyOptional;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class GreedHelper {
 
     public static final String BARTERED = "Bartered";
 
-    private static IGreed getGreedCapability(Entity entity){
-        LazyOptional<IGreed> lazyCap = entity.getCapability(GreedProvider.GREED_CAPABILITY);
+    private static Greed getGreedCapability(Entity entity){
+        LazyOptional<Greed> lazyCap = entity.getCapability(GreedProvider.GREED_CAPABILITY);
         if (lazyCap.isPresent()) {
             return lazyCap.orElseThrow(() -> new IllegalStateException("Couldn't get the greed capability from the Entity!"));
         }
@@ -35,7 +33,7 @@ public class GreedHelper {
     }
 
     public static boolean doesGreedInventoryHaveGold(Mob mobEntity){
-        IGreed greed = getGreedCapability(mobEntity);
+        Greed greed = getGreedCapability(mobEntity);
         if(greed != null){
             List<Item> forgeIngotsGold = Tags.Items.INGOTS_GOLD.getValues();
             Set<Item> goldIngots = new HashSet<>(forgeIngotsGold);
@@ -45,7 +43,7 @@ public class GreedHelper {
     }
 
     public static void dropGreedItems(LivingEntity mobEntity){
-        IGreed greed = getGreedCapability(mobEntity);
+        Greed greed = getGreedCapability(mobEntity);
         if(greed != null){
             getGreedItemsForDrop(mobEntity) // Filter out traded items
                     .forEach(mobEntity::spawnAtLocation);
@@ -53,7 +51,7 @@ public class GreedHelper {
     }
 
     public static Collection<ItemStack> getGreedItemsForDrop(LivingEntity mobEntity) {
-        IGreed greed = getGreedCapability(mobEntity);
+        Greed greed = getGreedCapability(mobEntity);
         if(greed != null){
             return greed.getGreedInventory().removeAllItems().stream()
                     .filter(GreedHelper::wasNotTraded)
@@ -69,7 +67,7 @@ public class GreedHelper {
     }
 
     public static boolean isSharingGold(Mob mobEntity){
-        IGreed greed = getGreedCapability(mobEntity);
+        Greed greed = getGreedCapability(mobEntity);
         if(greed != null){
             return greed.isSharingGold();
         }
@@ -133,7 +131,7 @@ public class GreedHelper {
     }
 
     private static ItemStack craftArmorFromGreedInventory(Mob mobEntity, EquipmentSlot slotType){
-        IGreed greed = getGreedCapability(mobEntity);
+        Greed greed = getGreedCapability(mobEntity);
         if(greed != null){
             int ingotRequirement = getIngotRequirement(slotType);
             if(ingotRequirement == 0){
@@ -174,7 +172,7 @@ public class GreedHelper {
     }
 
     public static void checkCraftEquipment(Piglin piglinEntity){
-        IGreed greed = getGreedCapability(piglinEntity);
+        Greed greed = getGreedCapability(piglinEntity);
         if(greed != null){
             if (!greed.getGreedInventory().isEmpty()) {
                 // track the amount of equipped items the piglin has currently
@@ -247,7 +245,7 @@ public class GreedHelper {
     }
 
     public static ItemStack addGreedItemToGreedInventory(Mob mobEntity, ItemStack stackToAdd, boolean didBarter) {
-        IGreed greed = getGreedCapability(mobEntity);
+        Greed greed = getGreedCapability(mobEntity);
         if(greed != null){
             if(!stackToAdd.isEmpty()){
                 SimpleContainer greedInventory = greed.getGreedInventory();
@@ -303,7 +301,7 @@ public class GreedHelper {
     }
 
     public static ItemStack addStackToGreedInventoryCheckBartered(Mob mobEntity, ItemStack stack, boolean didBarter){
-        IGreed greed = getGreedCapability(mobEntity);
+        Greed greed = getGreedCapability(mobEntity);
         if(greed != null){
             if (didBarter) {
                 CompoundTag compoundNBT = stack.getOrCreateTag();

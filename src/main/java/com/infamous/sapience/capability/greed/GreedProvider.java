@@ -1,6 +1,5 @@
 package com.infamous.sapience.capability.greed;
 
-import com.infamous.sapience.capability.ageable.IAgeable;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
@@ -15,11 +14,11 @@ import javax.annotation.Nullable;
 
 public class GreedProvider implements ICapabilitySerializable<CompoundTag> {
 
-    public static final Capability<IGreed> GREED_CAPABILITY =
+    public static final Capability<Greed> GREED_CAPABILITY =
             CapabilityManager.get(new CapabilityToken<>() {
             });
 
-    private LazyOptional<IGreed> instance = LazyOptional.of(Greed::new);
+    private final LazyOptional<Greed> instance = LazyOptional.of(Greed.Impl::new);
 
     @Nonnull
     @Override
@@ -28,7 +27,7 @@ public class GreedProvider implements ICapabilitySerializable<CompoundTag> {
 
     @Override
     public CompoundTag serializeNBT() {
-        IGreed instance = this.instance.orElseThrow(() -> new IllegalArgumentException("LazyOptional must not be empty!"));
+        Greed instance = this.instance.orElseThrow(() -> new IllegalArgumentException("LazyOptional must not be empty!"));
         CompoundTag tag = new CompoundTag();
         tag.put("GreedInventory", instance.getGreedInventory().createTag());
         tag.putBoolean("SharingGold", instance.isSharingGold());
@@ -37,7 +36,7 @@ public class GreedProvider implements ICapabilitySerializable<CompoundTag> {
 
     @Override
     public void deserializeNBT(CompoundTag nbt) {
-        IGreed instance = this.instance.orElseThrow(() -> new IllegalArgumentException("LazyOptional must not be empty!"));
+        Greed instance = this.instance.orElseThrow(() -> new IllegalArgumentException("LazyOptional must not be empty!"));
         instance.getGreedInventory().fromTag(nbt.getList("GreedInventory", Tag.TAG_COMPOUND));
         instance.setSharingGold(nbt.getBoolean("SharingGold"));
     }

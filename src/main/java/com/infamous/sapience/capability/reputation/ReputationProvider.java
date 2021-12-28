@@ -17,11 +17,11 @@ import javax.annotation.Nullable;
 
 public class ReputationProvider implements ICapabilitySerializable<CompoundTag> {
 
-    public static final Capability<IReputation> REPUTATION_CAPABILITY =
+    public static final Capability<Reputation> REPUTATION_CAPABILITY =
             CapabilityManager.get(new CapabilityToken<>() {
             });
 
-    private LazyOptional<IReputation> instance = LazyOptional.of(Reputation::new);
+    private final LazyOptional<Reputation> instance = LazyOptional.of(Reputation.Impl::new);
 
     @Nonnull
     @Override
@@ -30,7 +30,7 @@ public class ReputationProvider implements ICapabilitySerializable<CompoundTag> 
 
     @Override
     public CompoundTag serializeNBT() {
-        IReputation instance = this.instance.orElseThrow(() -> new IllegalArgumentException("LazyOptional must not be empty!"));
+        Reputation instance = this.instance.orElseThrow(() -> new IllegalArgumentException("LazyOptional must not be empty!"));
         CompoundTag tag = new CompoundTag();
 
         tag.put("Gossips", instance.getGossipManager().store(NbtOps.INSTANCE).getValue());
@@ -44,7 +44,7 @@ public class ReputationProvider implements ICapabilitySerializable<CompoundTag> 
 
     @Override
     public void deserializeNBT(CompoundTag nbt) {
-        IReputation instance = this.instance.orElseThrow(() -> new IllegalArgumentException("LazyOptional must not be empty!"));
+        Reputation instance = this.instance.orElseThrow(() -> new IllegalArgumentException("LazyOptional must not be empty!"));
         ListTag listnbt = nbt.getList("Gossips", Tag.TAG_COMPOUND);
         instance.getGossipManager().update(new Dynamic<>(NbtOps.INSTANCE, listnbt));
 

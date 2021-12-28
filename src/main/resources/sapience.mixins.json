@@ -5,23 +5,15 @@
   "minVersion": "0.8.5",
   "refmap": "sapience.refmap.json",
   "mixins": [
-    "AnimalMakeLoveAccessor",
     "BehaviorMixin",
-    "BrainAccessor",
     "BrainMixin",
-    "GateBehaviorAccessor",
-    "HoglinAccessor",
-    "HoglinEntityMixin",
-    "HoglinTasksMixin",
-    "PiglinAccessor",
-    "PiglinEntityMixin",
+    "MobMixin",
     "PiglinTasksMixin",
     "PlayerMixin",
-    "SensorMixin",
-    "ZoglinEntityMixin"
+    "SensorMixin"
   ],
   "client": [
-    "PiglinModelMixin"
+    "ClientPacketListenerMixin"
   ],
   "injectors": {
     "defaultRequire": 1

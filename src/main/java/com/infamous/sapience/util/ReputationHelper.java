@@ -2,42 +2,37 @@ package com.infamous.sapience.util;
 
 import com.infamous.sapience.Sapience;
 import com.infamous.sapience.SapienceConfig;
-import com.infamous.sapience.capability.reputation.IReputation;
+import com.infamous.sapience.capability.reputation.Reputation;
 import com.infamous.sapience.capability.reputation.ReputationProvider;
 import com.mojang.serialization.Dynamic;
+import net.minecraft.nbt.NbtOps;
+import net.minecraft.nbt.Tag;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
-import net.minecraft.world.entity.ReputationEventHandler;
+import net.minecraft.world.entity.ai.gossip.GossipContainer;
+import net.minecraft.world.entity.ai.gossip.GossipType;
 import net.minecraft.world.entity.ai.memory.MemoryModuleType;
 import net.minecraft.world.entity.ai.memory.NearestVisibleLivingEntities;
 import net.minecraft.world.entity.ai.village.ReputationEventType;
-import net.minecraft.world.entity.monster.piglin.AbstractPiglin;
 import net.minecraft.world.entity.monster.piglin.Piglin;
 import net.minecraft.world.entity.monster.piglin.PiglinAi;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.nbt.Tag;
-import net.minecraft.nbt.NbtOps;
 import net.minecraft.world.phys.AABB;
-import net.minecraft.world.entity.ai.gossip.GossipContainer;
-import net.minecraft.world.entity.ai.gossip.GossipType;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraftforge.common.util.LazyOptional;
-import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
-import java.util.List;
 import java.util.Optional;
-import java.util.function.Consumer;
 
 public class ReputationHelper {
 
     private static final int NEUTRAL_REPUTATION = 0;
 
     @Nullable
-    public static IReputation getReputationCapability(Entity entity)
+    public static Reputation getReputationCapability(Entity entity)
     {
-        LazyOptional<IReputation> lazyCap = entity.getCapability(ReputationProvider.REPUTATION_CAPABILITY);
+        LazyOptional<Reputation> lazyCap = entity.getCapability(ReputationProvider.REPUTATION_CAPABILITY);
         if (lazyCap.isPresent()) {
             return lazyCap.orElseThrow(() -> new IllegalStateException("Couldn't get the reputation capability from the Entity!"));
         }
@@ -45,8 +40,8 @@ public class ReputationHelper {
         return null;
     }
 
-    public static void updatePiglinReputation(AbstractPiglin piglinEntity, ReputationEventType type, Entity target){
-        IReputation reputation = getReputationCapability(piglinEntity);
+    public static void updatePiglinReputation(LivingEntity host, ReputationEventType type, Entity target){
+        Reputation reputation = getReputationCapability(host);
         if(reputation != null){
             GossipContainer gossipManager = reputation.getGossipManager();
 
@@ -104,8 +99,8 @@ public class ReputationHelper {
 
     // used in ShareGoldTask#updateTask
     public static void spreadGossip(LivingEntity host, LivingEntity ally, long gameTime) {
-        IReputation hostReputation = getReputationCapability(host);
-        IReputation allyReputation = getReputationCapability(ally);
+        Reputation hostReputation = getReputationCapability(host);
+        Reputation allyReputation = getReputationCapability(ally);
 
         if(hostReputation != null && allyReputation != null){
             if ((gameTime < hostReputation.getLastGossipTime() || gameTime >= hostReputation.getLastGossipTime() + 1200L)
@@ -119,8 +114,8 @@ public class ReputationHelper {
 
     // used in CreateBabyTask#updateTask
     public static void spreadGossipDirect(LivingEntity host, LivingEntity ally) {
-        IReputation hostReputation = getReputationCapability(host);
-        IReputation allyReputation = getReputationCapability(ally);
+        Reputation hostReputation = getReputationCapability(host);
+        Reputation allyReputation = getReputationCapability(ally);
 
         if(hostReputation != null && allyReputation != null){
             hostReputation.getGossipManager().transferFrom(allyReputation.getGossipManager(), host.getRandom(), 10);
@@ -132,24 +127,20 @@ public class ReputationHelper {
             if(victim.getBrain().hasMemoryValue(MemoryModuleType.NEAREST_VISIBLE_LIVING_ENTITIES)){
                 Optional<NearestVisibleLivingEntities> optional = victim.getBrain().getMemory(MemoryModuleType.NEAREST_VISIBLE_LIVING_ENTITIES);
                 optional.ifPresent(nvle -> nvle
-                        .findAll(ReputationEventHandler.class::isInstance)
-                        .forEach(updateReputation(murderer, killedReputationType, serverworld)));
+                        .findAll(le -> true)
+                        .forEach(le -> ReputationHelper.updatePiglinReputation(le, killedReputationType, murderer)));
             } else{ // substitute for mobs that don't have the NEAREST_VISIBLE_LIVING_ENTITIES module
                 final double scale = 16.0D;
                 AABB aabb = victim.getBoundingBox().inflate(scale);
-                serverworld.getEntitiesOfClass(LivingEntity.class, aabb, (le) -> le != victim && le.isAlive() && le instanceof ReputationEventHandler)
-                        .forEach(updateReputation(murderer, killedReputationType, serverworld));
+                serverworld.getEntitiesOfClass(LivingEntity.class, aabb, (le) -> le != victim && le.isAlive())
+                        .forEach(le -> ReputationHelper.updatePiglinReputation(le, killedReputationType, murderer));
             }
         }
     }
 
-    private static Consumer<LivingEntity> updateReputation(Entity murderer, ReputationEventType killedReputationType, ServerLevel serverworld) {
-        return (le) -> serverworld.onReputationEvent(killedReputationType, murderer, (ReputationEventHandler) le);
-    }
-
     // called by the mob's tick method - use LivingUpdateEvent instead
     public static void updateGossip(Mob mobEntity) {
-        IReputation reputation = getReputationCapability(mobEntity);
+        Reputation reputation = getReputationCapability(mobEntity);
         if(reputation != null && mobEntity.level instanceof ServerLevel){
             long gameTime = mobEntity.level.getGameTime();
             if (reputation.getLastGossipDecay() == 0L) {
@@ -164,7 +155,7 @@ public class ReputationHelper {
     // call this when the zombified version of the mob gets cured
     // current plan is no curing zombified piglins, but will keep this here just in case
     public static void setGossip(Mob mobEntity, Tag gossip) {
-        IReputation reputation = getReputationCapability(mobEntity);
+        Reputation reputation = getReputationCapability(mobEntity);
         if(reputation != null){
             reputation.getGossipManager().update(new Dynamic<>(NbtOps.INSTANCE, gossip));
         }
@@ -172,7 +163,7 @@ public class ReputationHelper {
 
     // call this whenever a reputation of a player must be considered
     public static int getEntityReputation(Entity reputationEntity, Entity entityToCheck) {
-        IReputation reputation = getReputationCapability(reputationEntity);
+        Reputation reputation = getReputationCapability(reputationEntity);
         if(reputation != null){
             // A negative value means bad reputation, a positive value means good reputation
             /*
@@ -188,7 +179,7 @@ public class ReputationHelper {
 
     @Nullable
     public static Entity getPreviousInteractor(Mob mobEntity){
-        IReputation reputation = getReputationCapability(mobEntity);
+        Reputation reputation = getReputationCapability(mobEntity);
         if(reputation != null && mobEntity.level instanceof ServerLevel){
             if(reputation.getPreviousInteractor() != null){
                 return ((ServerLevel) mobEntity.level).getEntity(reputation.getPreviousInteractor());
@@ -199,7 +190,7 @@ public class ReputationHelper {
     }
 
     public static void setPreviousInteractor(Mob mobEntity, @Nullable Entity interactor){
-        IReputation reputation = getReputationCapability(mobEntity);
+        Reputation reputation = getReputationCapability(mobEntity);
         if(reputation != null){
             if(interactor != null){
                 reputation.setPreviousInteractor(interactor.getUUID());
@@ -210,8 +201,8 @@ public class ReputationHelper {
 
     public static void updatePreviousInteractorReputation(Mob mobEntity, ReputationEventType reputationType) {
         Entity previousInteractor = getPreviousInteractor(mobEntity);
-        if(previousInteractor != null && mobEntity instanceof ReputationEventHandler && mobEntity.level instanceof ServerLevel serverWorld){
-            serverWorld.onReputationEvent(reputationType, previousInteractor, (ReputationEventHandler) mobEntity);
+        if(previousInteractor != null && mobEntity.level instanceof ServerLevel serverWorld){
+            updatePiglinReputation(mobEntity, reputationType, previousInteractor);
             setPreviousInteractor(mobEntity, null);
         }
     }

@@ -1,34 +1,24 @@
 package com.infamous.sapience.util;
 
 import com.infamous.sapience.Sapience;
-import com.infamous.sapience.mixin.AnimalMakeLoveAccessor;
+import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.tags.EntityTypeTags;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.core.particles.ParticleOptions;
-import net.minecraft.world.entity.ai.behavior.AnimalMakeLove;
-import net.minecraft.world.entity.ai.behavior.Behavior;
 import net.minecraft.world.entity.ai.memory.MemoryModuleType;
 import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.entity.monster.hoglin.Hoglin;
-import net.minecraft.world.entity.monster.piglin.AbstractPiglin;
 import net.minecraft.world.entity.monster.piglin.Piglin;
-import net.minecraft.world.entity.monster.piglin.StartAdmiringItemIfSeen;
-import net.minecraft.world.entity.monster.piglin.StopHoldingItemIfNoLongerAdmiring;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
+import net.minecraft.world.level.gameevent.GameEvent;
 import net.minecraftforge.common.Tags;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 public class GeneralHelper {
     public static final int ANGER_ID = 16;
@@ -37,7 +27,6 @@ public class GeneralHelper {
 
     public static final Tags.IOptionalNamedTag<EntityType<?>> BOSSES = EntityTypeTags.createOptional(new ResourceLocation(Sapience.MODID, "bosses"));
 
-    @OnlyIn(Dist.CLIENT)
     public static void spawnParticles(LivingEntity livingEntity, ParticleOptions particleData) {
         for(int i = 0; i < 5; ++i) {
             double randomXSpeed = livingEntity.getRandom().nextGaussian() * 0.02D;
@@ -71,17 +60,47 @@ public class GeneralHelper {
         return entity instanceof Piglin ? EntityType.PIGLIN : entity.getType();
     }
 
-    public static void handleCustomPostInteract(Player player, InteractionHand hand, ItemStack originalStack, InteractionResult interactionResult) {
-        ItemStack stackInHand = player.getItemInHand(hand);
-        ItemStack copyStack = originalStack.copy();
-        if (interactionResult.consumesAction()) {
-            if (player.getAbilities().instabuild && stackInHand == player.getItemInHand(hand) && stackInHand.getCount() < copyStack.getCount()) {
-                stackInHand.setCount(copyStack.getCount()); // restores stack count if in creative mode
-            }
-
-            if (!player.getAbilities().instabuild && stackInHand.isEmpty()) {
-                net.minecraftforge.event.ForgeEventFactory.onPlayerDestroyItem(player, copyStack, hand);
-            }
+    public static InteractionResult handleGiveAnimalFood(Animal animal, Player player, InteractionHand hand){
+        ItemStack stack = player.getItemInHand(hand);
+        int age = animal.getAge();
+        if (!animal.level.isClientSide && age == 0 && animal.canFallInLove()) {
+            ReflectionHelper.callUsePlayerItem(animal, player, hand, stack);
+            ReflectionHelper.callUsePlayerItem(animal, player, hand, stack);
+            animal.setInLove(player);
+            animal.gameEvent(GameEvent.MOB_INTERACT, animal.eyeBlockPosition());
+            return InteractionResult.SUCCESS;
         }
+
+        if (animal.isBaby()) {
+            ReflectionHelper.callUsePlayerItem(animal, player, hand, stack);
+            animal.ageUp((int)((float)(-age / 20) * 0.1F), true);
+            animal.gameEvent(GameEvent.MOB_INTERACT, animal.eyeBlockPosition());
+            return InteractionResult.sidedSuccess(animal.level.isClientSide);
+        }
+
+        if (animal.level.isClientSide) {
+            return InteractionResult.CONSUME;
+        }
+
+        return InteractionResult.PASS;
     }
+
+    public static Optional<? extends Animal> findValidBreedPartner(Animal parent, EntityType<? extends Animal> partnerType) {
+        return parent.getBrain().getMemory(MemoryModuleType.NEAREST_VISIBLE_LIVING_ENTITIES).flatMap(memory -> memory.findClosest((le) -> {
+            if (le.getType() == partnerType && le instanceof Animal potentialPartner) {
+                return parent.canMate(potentialPartner);
+            }
+            return false;
+        })).map(Animal.class::cast);
+    }
+
+    public static Optional<Animal> getBreedTarget(Animal animal) {
+        return animal.getBrain().getMemory(MemoryModuleType.BREED_TARGET)
+                .map(Animal.class::isInstance).map(Animal.class::cast);
+    }
+
+    public static Optional<LivingEntity> getAttackTarget(LivingEntity attacker) {
+        return attacker.getBrain().getMemory(MemoryModuleType.ATTACK_TARGET);
+    }
+
 }

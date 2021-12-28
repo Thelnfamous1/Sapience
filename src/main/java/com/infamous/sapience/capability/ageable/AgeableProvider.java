@@ -2,7 +2,6 @@ package com.infamous.sapience.capability.ageable;
 
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.Tag;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.capabilities.CapabilityManager;
 import net.minecraftforge.common.capabilities.CapabilityToken;
@@ -14,11 +13,11 @@ import javax.annotation.Nullable;
 
 public class AgeableProvider implements ICapabilitySerializable<CompoundTag> {
 
-    public static final Capability<IAgeable> AGEABLE_CAPABILITY =
+    public static final Capability<Ageable> AGEABLE_CAPABILITY =
             CapabilityManager.get(new CapabilityToken<>() {
             });
 
-    private LazyOptional<IAgeable> instance = LazyOptional.of(Ageable::new);
+    private final LazyOptional<Ageable> instance = LazyOptional.of(Ageable.Impl::new);
 
     @Nonnull
     @Override
@@ -27,7 +26,7 @@ public class AgeableProvider implements ICapabilitySerializable<CompoundTag> {
 
     @Override
     public CompoundTag serializeNBT() {
-        IAgeable instance = this.instance.orElseThrow(() -> new IllegalArgumentException("LazyOptional must not be empty!"));
+        Ageable instance = this.instance.orElseThrow(() -> new IllegalArgumentException("LazyOptional must not be empty!"));
         CompoundTag tag = new CompoundTag();
         tag.putInt("Age", instance.getGrowingAge());
         tag.putInt("ForcedAge", instance.getForcedAge());
@@ -40,7 +39,7 @@ public class AgeableProvider implements ICapabilitySerializable<CompoundTag> {
 
     @Override
     public void deserializeNBT(CompoundTag nbt) {
-        IAgeable instance = this.instance.orElseThrow(() -> new IllegalArgumentException("LazyOptional must not be empty!"));
+        Ageable instance = this.instance.orElseThrow(() -> new IllegalArgumentException("LazyOptional must not be empty!"));
         instance.setGrowingAge(nbt.getInt("Age"));
         instance.setForcedAge(nbt.getInt("ForcedAge"));
         instance.setBorn(nbt.getBoolean("WasBorn"));

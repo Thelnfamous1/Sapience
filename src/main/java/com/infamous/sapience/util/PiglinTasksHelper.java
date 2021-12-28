@@ -2,13 +2,16 @@ package com.infamous.sapience.util;
 
 import com.google.common.collect.Lists;
 import com.infamous.sapience.Sapience;
-import com.infamous.sapience.mod.IShakesHead;
+import com.infamous.sapience.SapienceConfig;
+import com.infamous.sapience.capability.emotive.Emotive;
+import com.infamous.sapience.capability.emotive.EmotiveProvider;
 import com.infamous.sapience.mod.ModMemoryModuleTypes;
 import com.infamous.sapience.tasks.CraftWithGoldTask;
 import com.infamous.sapience.tasks.CreateBabyTask;
 import com.infamous.sapience.tasks.FeedHoglinsTask;
 import com.infamous.sapience.tasks.ShareGoldTask;
 import com.mojang.datafixers.util.Pair;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
@@ -44,6 +47,7 @@ import net.minecraftforge.common.Tags;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.Random;
 
 public class PiglinTasksHelper {
     public static final Tags.IOptionalNamedTag<EntityType<?>> PIGLINS_HUNT = EntityTypeTags.createOptional(new ResourceLocation(Sapience.MODID, "piglins_hunt"));
@@ -282,7 +286,7 @@ public class PiglinTasksHelper {
                 actionResultTypeIn = processInteractionForFoodItem(piglinEntity, playerEntity, handIn);
             }
             else{
-                boolean canAcceptFoodItem = canAcceptFoodItem(piglinEntity, itemStack)  && piglinEntity.getArmPose() != PiglinArmPose.ADMIRING_ITEM;
+                boolean canAcceptFoodItem = canAcceptFoodItem(piglinEntity, itemStack)  && isNotAdmiringClientSide(piglinEntity);
                 actionResultTypeIn = canAcceptFoodItem ? InteractionResult.SUCCESS : InteractionResult.PASS;
             }
         }
@@ -296,7 +300,7 @@ public class PiglinTasksHelper {
                 actionResultTypeIn = processInteractionForPiglinGreedItem(piglinEntity, playerEntity, handIn);
             }
             else{
-                boolean canTakeGreedItem = canAcceptPiglinGreedItem(piglinEntity, itemStack)  && piglinEntity.getArmPose() != PiglinArmPose.ADMIRING_ITEM;
+                boolean canTakeGreedItem = canAcceptPiglinGreedItem(piglinEntity, itemStack)  && isNotAdmiringClientSide(piglinEntity);
                 actionResultTypeIn = canTakeGreedItem ? InteractionResult.SUCCESS : InteractionResult.PASS;
             }
         }
@@ -305,11 +309,15 @@ public class PiglinTasksHelper {
                 actionResultTypeIn = processInteractionForPiglinLovedItem(piglinEntity, playerEntity, handIn);
             }
             else{
-                boolean canTakeLovedItem = canAcceptPiglinLovedItem(piglinEntity, itemStack)  && piglinEntity.getArmPose() != PiglinArmPose.ADMIRING_ITEM;
+                boolean canTakeLovedItem = canAcceptPiglinLovedItem(piglinEntity, itemStack)  && isNotAdmiringClientSide(piglinEntity);
                 actionResultTypeIn = canTakeLovedItem ? InteractionResult.SUCCESS : InteractionResult.PASS;
             }
         }
         return actionResultTypeIn;
+    }
+
+    private static boolean isNotAdmiringClientSide(AbstractPiglin piglinEntity) {
+        return piglinEntity.getArmPose() != PiglinArmPose.ADMIRING_ITEM || !shouldAdmire(piglinEntity.getOffhandItem());
     }
 
     private static List<ItemStack> getBlockBarteringLoot(AbstractPiglin piglinEntity){
@@ -344,7 +352,7 @@ public class PiglinTasksHelper {
         dropItemsAccountingForNearbyPlayer(piglinEntity, getNuggetBarteringLoot(piglinEntity));
     }
 
-    private static void dropItemsAccountingForNearbyPlayer(AbstractPiglin piglinEntity, List<ItemStack> itemStacks) {
+    public static void dropItemsAccountingForNearbyPlayer(AbstractPiglin piglinEntity, List<ItemStack> itemStacks) {
         Optional<Player> optionalPlayerEntity = getNearestVisiblePlayer(piglinEntity);
         if (optionalPlayerEntity.isPresent()) {
             dropItemsNearPlayer(piglinEntity, optionalPlayerEntity.get(), itemStacks);
@@ -459,7 +467,9 @@ public class PiglinTasksHelper {
 
     public static void handlePiglinInteractPost(Piglin piglin, Player player, InteractionResult interactionResult) {
         if(!interactionResult.consumesAction()){
-            ((IShakesHead) piglin).setShakeHeadTicks(IShakesHead.DEFAULT_SHAKE_TICKS);
+            piglin.getCapability(EmotiveProvider.EMOTIVE_CAPABILITY).ifPresent(
+                    e -> e.setShakeHeadTicks(Emotive.DEFAULT_SHAKE_TICKS)
+            );
 
             if(piglin.level.isClientSide){
                 piglin.playSound(SoundEvents.PIGLIN_ANGRY, 1.0F, piglin.getVoicePitch());
@@ -474,6 +484,57 @@ public class PiglinTasksHelper {
                 piglin.level.broadcastEntityEvent(piglin, (byte) GeneralHelper.ACCEPT_ID);
                 ReputationHelper.setPreviousInteractor(piglin, player);
             }
+        }
+    }
+
+    public static void handleStopHoldingOffHandItem(Piglin piglinEntity, boolean doBarter) {
+        Entity interactorEntity = ReputationHelper.getPreviousInteractor(piglinEntity);
+        boolean willDropLoot =
+                interactorEntity instanceof LivingEntity living && ReputationHelper.isAllowedToBarter(piglinEntity, living)
+                || interactorEntity == null && !SapienceConfig.COMMON.REQUIRE_LIVING_FOR_BARTER.get();
+
+        ItemStack offhandStack = piglinEntity.getItemInHand(InteractionHand.OFF_HAND);
+
+        boolean isIngotBarterGreedItem = isNormalBarterItem(offhandStack);
+        if (isIngotBarterGreedItem) {
+            GreedHelper.addStackToGreedInventoryCheckBartered(piglinEntity, offhandStack, doBarter && piglinEntity.isAdult());
+        }
+
+        if (!piglinEntity.isBaby()) { // isAdult
+            if(isExpensiveBarterItem(offhandStack) && doBarter && willDropLoot){
+                dropBlockBarteringLoot(piglinEntity);
+                CompoundTag compoundNBT = offhandStack.getOrCreateTag();
+                compoundNBT.putBoolean(GreedHelper.BARTERED, true);
+
+                ReputationHelper.updatePreviousInteractorReputation(piglinEntity, PiglinReputationType.BARTER);
+            }
+            else if(isCheapBarterItem(offhandStack) && doBarter && willDropLoot){
+                dropNuggetBarteringLoot(piglinEntity);
+                CompoundTag compoundNBT = offhandStack.getOrCreateTag();
+                compoundNBT.putBoolean(GreedHelper.BARTERED, true);
+
+                ReputationHelper.updatePreviousInteractorReputation(piglinEntity, PiglinReputationType.BARTER);
+            }
+            // treat piglin loved items as gold gifts for adults
+            else if(isPiglinLoved(offhandStack) && !isBarterItem(offhandStack)){
+                ReputationHelper.updatePreviousInteractorReputation(piglinEntity, PiglinReputationType.GOLD_GIFT);
+            }
+
+            // Since baby Piglins don't barter, we can treat barter items as gold gifts in addition to piglin loved items
+        } else if(isPiglinLoved(offhandStack) || isBarterItem(offhandStack)){
+            ReputationHelper.updatePreviousInteractorReputation(piglinEntity, PiglinReputationType.GOLD_GIFT);
+        }
+    }
+
+    public static boolean shouldAdmire(ItemStack stack) {
+        return isPiglinLoved(stack) || isBarterItem(stack);
+    }
+
+    public static boolean wantsToDance(LivingEntity dancer, LivingEntity victim) {
+        if (victim.getType().is(PIGLINS_HUNT)) {
+            return false;
+        } else {
+            return (new Random(dancer.level.getGameTime())).nextFloat() < SapienceConfig.COMMON.DANCE_CHANCE.get();
         }
     }
 }

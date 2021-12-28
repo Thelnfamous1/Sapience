@@ -40,6 +40,8 @@ public class SapienceConfig {
         public final ForgeConfigSpec.ConfigValue<Integer> UNFRIENDLY_GOSSIP_REQUIREMENT;
         public final ForgeConfigSpec.ConfigValue<Integer> ENEMY_GOSSIP_REQUIREMENT;
 
+        public final ForgeConfigSpec.ConfigValue<Float> DANCE_CHANCE;
+
 
         public Common(ForgeConfigSpec.Builder builder){
 
@@ -47,6 +49,9 @@ public class SapienceConfig {
 
             REQUIRE_LIVING_FOR_BARTER = builder.comment("Determines whether or not Piglins can only give bartering loot if the received bartering item came from a living being [true/false, default:true]")
                     .define("requireLivingForBarter", true);
+
+            DANCE_CHANCE = builder.comment("The chance of for a piglin to dance after a successful hunt [0.0-1.0, default:0.1]")
+                    .define("danceChance", 0.1F);
 
             builder.pop();
 

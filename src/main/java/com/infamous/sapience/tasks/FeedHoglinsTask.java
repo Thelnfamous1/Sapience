@@ -2,6 +2,7 @@ package com.infamous.sapience.tasks;
 
 import com.google.common.collect.ImmutableMap;
 import com.infamous.sapience.mod.ModMemoryModuleTypes;
+import com.infamous.sapience.util.HoglinTasksHelper;
 import com.infamous.sapience.util.PiglinTasksHelper;
 import net.minecraft.world.entity.ai.behavior.BehaviorUtils;
 import net.minecraft.world.entity.ai.memory.MemoryStatus;
@@ -29,7 +30,7 @@ public class FeedHoglinsTask<T extends Piglin> extends Behavior<T> {
 
     @Override
     protected boolean checkExtraStartConditions(ServerLevel serverWorld, T owner) {
-        return PiglinTasksHelper.hasNotFedRecently(owner);
+        return PiglinTasksHelper.hasNotFedRecently(owner) && HoglinTasksHelper.HOGLIN_FOOD_ITEMS.contains(Items.CRIMSON_FUNGUS);
     }
 
     @Override

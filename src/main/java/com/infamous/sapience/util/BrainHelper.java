@@ -3,10 +3,7 @@ package com.infamous.sapience.util;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import com.infamous.sapience.mixin.BrainAccessor;
-import com.infamous.sapience.mixin.GateBehaviorAccessor;
 import com.mojang.datafixers.util.Pair;
-import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.Brain;
 import net.minecraft.world.entity.ai.behavior.Behavior;
 import net.minecraft.world.entity.ai.behavior.GateBehavior;
@@ -33,16 +30,10 @@ public class BrainHelper {
 
         return priorityPairs.build();
     }
-
-    public static BrainAccessor castToAccessor(Brain<?> brain) {
-        return (BrainAccessor)brain;
-    }
-
     public static void addPrioritizedBehaviors(Activity activity, List<? extends Pair<Integer, ? extends Behavior<?>>> prioritizedTasks, Brain<?> brain) {
-        BrainAccessor brainAccessor = castToAccessor(brain);
 
         for(Pair<Integer, ? extends Behavior<?>> pair : prioritizedTasks) {
-            brainAccessor.getAvailableBehaviorsByPriority()
+            ReflectionHelper.getAvailableBehaviorsByPriority(brain)
                     .computeIfAbsent(pair.getFirst(), (p) -> Maps.newHashMap())
                     .computeIfAbsent(activity, (a) -> Sets.newLinkedHashSet())
                     .add(pair.getSecond());
@@ -50,8 +41,7 @@ public class BrainHelper {
     }
 
     public static Optional<Behavior<?>> retrieveFirstAvailableTask(Brain<?> brain, Activity activityType, int priority, Predicate<Behavior<?>> predicate){
-        BrainAccessor accessor = castToAccessor(brain);
-        return accessor.getAvailableBehaviorsByPriority()
+        return ReflectionHelper.getAvailableBehaviorsByPriority(brain)
                 .get(priority)
                 .get(activityType)
                 .stream()
@@ -68,14 +58,9 @@ public class BrainHelper {
         addPrioritizedBehaviors(activityType, prioritizedAdditionalCoreTasks, brain);
     }
 
-    public static GateBehaviorAccessor castToAccessor(GateBehavior<?> gateBehavior){
-        return (GateBehaviorAccessor) gateBehavior;
-    }
-
     public static void addToGateBehavior(GateBehavior<?> gateBehavior, Pair<Behavior<?>, Integer>... weightedTasks){
-        GateBehaviorAccessor accessor = castToAccessor(gateBehavior);
         for(Pair<Behavior<?>, Integer> weightedBehavior : weightedTasks){
-            accessor.getBehaviors().add(weightedBehavior.getFirst(), weightedBehavior.getSecond());
+            ReflectionHelper.getBehaviors(gateBehavior).add(weightedBehavior.getFirst(), weightedBehavior.getSecond());
         }
     }
 
