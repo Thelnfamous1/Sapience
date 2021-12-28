@@ -1,15 +1,12 @@
 package com.infamous.sapience.mixin;
 
-import com.infamous.sapience.SapienceConfig;
 import com.infamous.sapience.util.GeneralHelper;
 import com.infamous.sapience.util.PiglinReputationType;
 import com.infamous.sapience.util.PiglinTasksHelper;
 import com.infamous.sapience.util.ReputationHelper;
-import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.behavior.BehaviorUtils;
-import net.minecraft.world.entity.ai.memory.MemoryModuleType;
 import net.minecraft.world.entity.ai.sensing.Sensor;
 import net.minecraft.world.entity.monster.piglin.AbstractPiglin;
 import net.minecraft.world.entity.monster.piglin.Piglin;
@@ -32,24 +29,6 @@ public class PiglinTasksMixin {
     private static void setAngerTarget(AbstractPiglin piglinEntity, LivingEntity target, CallbackInfo callbackInfo){
         if(Sensor.isEntityAttackableIgnoringLineOfSight(piglinEntity, target)){
             piglinEntity.level.broadcastEntityEvent(piglinEntity, (byte) GeneralHelper.ANGER_ID);
-        }
-    }
-
-    // When the piglin drops bartering loot after having been given piglin currency
-    // The goal here is to prevent it dropping bartering loot if the player's rep is too low
-    @Inject(at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/monster/piglin/PiglinAi;throwItems(Lnet/minecraft/world/entity/monster/piglin/Piglin;Ljava/util/List;)V", ordinal = 0), method = "stopHoldingOffHandItem", cancellable = true)
-    private static void dropLoot(Piglin piglinEntity, boolean doBarter, CallbackInfo callbackInfo){
-        Entity interactorEntity = ReputationHelper.getPreviousInteractor(piglinEntity);
-
-        if(doBarter){
-            ReputationHelper.updatePreviousInteractorReputation(piglinEntity, PiglinReputationType.BARTER);
-        }
-        boolean willDropLoot =
-                interactorEntity instanceof LivingEntity && ReputationHelper.isAllowedToBarter(piglinEntity, (LivingEntity) interactorEntity)
-                || interactorEntity == null && !SapienceConfig.COMMON.REQUIRE_LIVING_FOR_BARTER.get();
-
-        if(!willDropLoot){
-            callbackInfo.cancel();
         }
     }
 

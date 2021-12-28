@@ -37,7 +37,6 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.schedule.Activity;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
 import net.minecraft.world.item.UseAnim;
 import net.minecraft.world.level.GameRules;
 import net.minecraft.world.level.storage.loot.BuiltInLootTables;
@@ -47,7 +46,6 @@ import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.common.Tags;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.Collections;
 import java.util.List;
@@ -68,23 +66,6 @@ public class PiglinTasksHelper {
 
     private static final UniformInt RANGED_FEEDING_TIMER = TimeUtil.rangeOfSeconds(30, 120);
     public static final UniformInt TIME_BETWEEN_HUNTS = TimeUtil.rangeOfSeconds(30, 120);
-
-    public static boolean canPickUpFoodStack(Piglin piglinEntity, ItemStack itemStack) {
-        if (itemStack.is(ItemTags.PIGLIN_REPELLENTS)) {
-            return false;
-        } else if (PiglinTasksHelper.hasAdmiringDisabled(piglinEntity) && hasAttackTarget(piglinEntity)) {
-            return false;
-        } else if (itemStack.isPiglinCurrency()) {
-            return PiglinTasksHelper.hasOpenOffhandSlot(piglinEntity);
-        } else {
-            if (PiglinTasksHelper.isPiglinFoodItem(itemStack)) {
-                return !PiglinTasksHelper.hasAteRecently(piglinEntity) && hasOpenOffhandSlot(piglinEntity);
-            }
-            else{
-                return false;
-            }
-        }
-    }
 
     private static void dropItems(AbstractPiglin piglinEntity, List<ItemStack> itemStacks, Vec3 vector3d) {
         if (!itemStacks.isEmpty()) {
@@ -113,7 +94,7 @@ public class PiglinTasksHelper {
         ItemStack itemstack = itemEntity.getItem();
         ItemStack itemstack1 = itemstack.split(1);
         if (itemstack.isEmpty()) {
-            itemEntity.remove(Entity.RemovalReason.DISCARDED);
+            itemEntity.discard();
         } else {
             itemEntity.setItem(itemstack);
         }
@@ -355,13 +336,6 @@ public class PiglinTasksHelper {
         return item.is(PIGLINS_BARTER_CHEAP);
     }
 
-    public static void dropBlockBarteringLoot(AbstractPiglin piglinEntity){
-        dropItemsAccountingForNearbyPlayer(piglinEntity, getBlockBarteringLoot(piglinEntity));
-    }
-    public static void dropNuggetBarteringLoot(AbstractPiglin piglinEntity){
-        dropItemsAccountingForNearbyPlayer(piglinEntity, getNuggetBarteringLoot(piglinEntity));
-    }
-
     public static void dropItemsAccountingForNearbyPlayer(AbstractPiglin piglinEntity, List<ItemStack> itemStacks) {
         Optional<Player> optionalPlayerEntity = getNearestVisiblePlayer(piglinEntity);
         if (optionalPlayerEntity.isPresent()) {
@@ -544,12 +518,10 @@ public class PiglinTasksHelper {
 
     public static void pickUpPiglinItem(Piglin piglin, ItemEntity itemEntity) {
         clearWalkPath(piglin);
-        ItemStack itemstack;
-        piglin.take(itemEntity, itemEntity.getItem().getCount());
-        itemstack = itemEntity.getItem();
-        itemEntity.discard();
+        piglin.take(itemEntity, 1);
+        ItemStack itemstack = extractSingletonFromItemEntity(itemEntity);
 
-        if (isPiglinLoved(itemstack)) {
+        if (isPiglinLoved(itemstack) || isBarterItem(itemstack)) {
             removeTimeTryingToReachAdmireItem(piglin);
             dropOffhandItemAndSetItemStackToOffhand(piglin, itemstack);
             setAdmiringItem(piglin);
@@ -590,8 +562,19 @@ public class PiglinTasksHelper {
         if (piglin.isAdult()) {
             boolean barterItem = isBarterItem(offHandItem);
             if (doBarter && barterItem) {
-                dropItemsAccountingForNearbyPlayer(piglin, getBarterResponseItems(piglin));
+                if(willDropLoot) dropItemsAccountingForNearbyPlayer(piglin,
+                        isCheapBarterItem(offHandItem) ?
+                                getNuggetBarteringLoot(piglin) :
+                                isExpensiveBarterItem(offHandItem) ?
+                                        getBlockBarteringLoot(piglin) :
+                                        getBarterResponseItems(piglin));
+                ReputationHelper.updatePreviousInteractorReputation(piglin, PiglinReputationType.BARTER);
+                markAsBartered(offHandItem);
+                putInInventory(piglin, offHandItem);
             } else if (!barterItem) {
+                if(isPiglinLoved(offHandItem)){
+                    ReputationHelper.updatePreviousInteractorReputation(piglin, PiglinReputationType.GOLD_GIFT);
+                }
                 boolean equippedItem = piglin.equipItemIfPossible(offHandItem);
                 if (!equippedItem) {
                     putInInventory(piglin, offHandItem);
@@ -614,40 +597,9 @@ public class PiglinTasksHelper {
 
     }
 
-    public static void handleStopHoldingOffHandItem(Piglin piglinEntity, boolean doBarter) {
-        Entity interactorEntity = ReputationHelper.getPreviousInteractor(piglinEntity);
-        boolean willDropLoot = willDropLootFor(piglinEntity, interactorEntity);
-
-        ItemStack offhandStack = piglinEntity.getItemInHand(InteractionHand.OFF_HAND);
-
-        boolean isIngotBarterGreedItem = isNormalBarterItem(offhandStack);
-        if (isIngotBarterGreedItem) {
-            GreedHelper.addStackToGreedInventoryCheckBartered(piglinEntity, offhandStack, doBarter && piglinEntity.isAdult());
-        }
-
-        if (!piglinEntity.isBaby()) { // isAdult
-            if(isExpensiveBarterItem(offhandStack) && doBarter && willDropLoot){
-                dropBlockBarteringLoot(piglinEntity);
-                CompoundTag compoundNBT = offhandStack.getOrCreateTag();
-                compoundNBT.putBoolean(GreedHelper.BARTERED, true);
-                ReputationHelper.updatePreviousInteractorReputation(piglinEntity, PiglinReputationType.BARTER);
-            }
-            else if(isCheapBarterItem(offhandStack) && doBarter && willDropLoot){
-                dropNuggetBarteringLoot(piglinEntity);
-                CompoundTag compoundNBT = offhandStack.getOrCreateTag();
-                compoundNBT.putBoolean(GreedHelper.BARTERED, true);
-
-                ReputationHelper.updatePreviousInteractorReputation(piglinEntity, PiglinReputationType.BARTER);
-            }
-            // treat piglin loved items as gold gifts for adults
-            else if(isPiglinLoved(offhandStack) && !isBarterItem(offhandStack)){
-                ReputationHelper.updatePreviousInteractorReputation(piglinEntity, PiglinReputationType.GOLD_GIFT);
-            }
-
-            // Since baby Piglins don't barter, we can treat barter items as gold gifts in addition to piglin loved items
-        } else if(isPiglinLoved(offhandStack) || isBarterItem(offhandStack)){
-            ReputationHelper.updatePreviousInteractorReputation(piglinEntity, PiglinReputationType.GOLD_GIFT);
-        }
+    private static void markAsBartered(ItemStack offHandItem) {
+        CompoundTag compoundNBT = offHandItem.getOrCreateTag();
+        compoundNBT.putBoolean(GreedHelper.BARTERED, true);
     }
 
     private static boolean willDropLootFor(Piglin piglinEntity, Entity interactorEntity) {
