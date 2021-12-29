@@ -35,7 +35,7 @@ public class ReflectionHelper {
     public static Optional<Object> callMethod(String methodName, Object invokeOn, Class<?> inClass, Object[] parameters, Class<?> [] parameterTypes){
         Method method = CACHED_METHODS.computeIfAbsent(methodName, k -> ObfuscationReflectionHelper.findMethod(inClass, methodName, parameterTypes));
         try {
-            return Optional.of(method.invoke(invokeOn, parameters));
+            return Optional.ofNullable(method.invoke(invokeOn, parameters));
         } catch (IllegalAccessException | InvocationTargetException e) {
             Sapience.LOGGER.info("Reflection error for method {}! Invoked on {} with parameter {}", methodName, inClass, Arrays.toString(parameterTypes));
             return Optional.empty();
@@ -45,7 +45,7 @@ public class ReflectionHelper {
     public static Optional<Object> accessField(String fieldName, Object accessFrom, Class<?> inClass){
         Field field = CACHED_FIELDS.computeIfAbsent(fieldName, k -> ObfuscationReflectionHelper.findField(inClass, fieldName));
         try {
-            return Optional.of(field.get(accessFrom));
+            return Optional.ofNullable(field.get(accessFrom));
         } catch (IllegalAccessException e) {
             Sapience.LOGGER.info("Reflection error for field {}! Invoked on {}", fieldName, inClass);
             return Optional.empty();
