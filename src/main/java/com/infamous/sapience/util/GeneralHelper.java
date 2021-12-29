@@ -65,7 +65,6 @@ public class GeneralHelper {
         int age = animal.getAge();
         if (!animal.level.isClientSide && age == 0 && animal.canFallInLove()) {
             ReflectionHelper.callUsePlayerItem(animal, player, hand, stack);
-            ReflectionHelper.callUsePlayerItem(animal, player, hand, stack);
             animal.setInLove(player);
             animal.gameEvent(GameEvent.MOB_INTERACT, animal.eyeBlockPosition());
             return InteractionResult.SUCCESS;
@@ -96,7 +95,8 @@ public class GeneralHelper {
 
     public static Optional<Animal> getBreedTarget(Animal animal) {
         return animal.getBrain().getMemory(MemoryModuleType.BREED_TARGET)
-                .map(Animal.class::isInstance).map(Animal.class::cast);
+                .filter(Animal.class::isInstance)
+                .map(Animal.class::cast);
     }
 
     public static Optional<LivingEntity> getAttackTarget(LivingEntity attacker) {

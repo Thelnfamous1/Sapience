@@ -242,10 +242,7 @@ public class PiglinTasksHelper {
     private static boolean canAcceptPiglinGreedItem(AbstractPiglin piglinEntity, ItemStack itemStack) {
         return !hasAdmiringDisabled(piglinEntity)
                 && !hasAdmiringItem(piglinEntity)
-
-                && (isAlternativeGreedItem(itemStack) // a specific check for baby piglins to be able to accept piglin currency
-                || isNormalBarterItem(itemStack) && piglinEntity.isBaby())
-
+                && isBarterItem(itemStack)
                 && !hasConsumableOffhandItem(piglinEntity);
     }
 

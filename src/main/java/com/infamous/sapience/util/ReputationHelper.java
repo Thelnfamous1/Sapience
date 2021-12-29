@@ -11,6 +11,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.ReputationEventHandler;
 import net.minecraft.world.entity.ai.gossip.GossipContainer;
 import net.minecraft.world.entity.ai.gossip.GossipType;
 import net.minecraft.world.entity.ai.memory.MemoryModuleType;
@@ -127,12 +128,12 @@ public class ReputationHelper {
             if(victim.getBrain().hasMemoryValue(MemoryModuleType.NEAREST_VISIBLE_LIVING_ENTITIES)){
                 Optional<NearestVisibleLivingEntities> optional = victim.getBrain().getMemory(MemoryModuleType.NEAREST_VISIBLE_LIVING_ENTITIES);
                 optional.ifPresent(nvle -> nvle
-                        .findAll(le -> true)
+                        .findAll(ReputationHelper::hasModdedReputationHandling)
                         .forEach(le -> ReputationHelper.updatePiglinReputation(le, killedReputationType, murderer)));
             } else{ // substitute for mobs that don't have the NEAREST_VISIBLE_LIVING_ENTITIES module
                 final double scale = 16.0D;
                 AABB aabb = victim.getBoundingBox().inflate(scale);
-                serverworld.getEntitiesOfClass(LivingEntity.class, aabb, (le) -> le != victim && le.isAlive())
+                serverworld.getEntitiesOfClass(LivingEntity.class, aabb, (le) -> le != victim && le.isAlive() && hasModdedReputationHandling(le))
                         .forEach(le -> ReputationHelper.updatePiglinReputation(le, killedReputationType, murderer));
             }
         }
@@ -220,5 +221,13 @@ public class ReputationHelper {
 
     public static boolean isAllowedToBarter(Piglin piglinEntity, LivingEntity interactorEntity) {
         return getEntityReputation(piglinEntity, interactorEntity) > SapienceConfig.COMMON.UNFRIENDLY_GOSSIP_REQUIREMENT.get();
+    }
+
+    public static boolean hasVanillaOrModdedReputationHandling(Entity target) {
+        return target instanceof ReputationEventHandler || hasModdedReputationHandling(target);
+    }
+
+    private static boolean hasModdedReputationHandling(Entity target) {
+        return target.getCapability(ReputationProvider.REPUTATION_CAPABILITY).isPresent();
     }
 }

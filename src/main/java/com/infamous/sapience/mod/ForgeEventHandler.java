@@ -16,7 +16,6 @@ import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.ReputationEventHandler;
 import net.minecraft.world.entity.ai.behavior.GoToWantedItem;
 import net.minecraft.world.entity.ai.behavior.RunOne;
 import net.minecraft.world.entity.item.ItemEntity;
@@ -166,10 +165,6 @@ public class ForgeEventHandler {
         }
     }
 
-    private static boolean hasReputationHandling(Entity target) {
-        return target instanceof ReputationEventHandler || target.getCapability(ReputationProvider.REPUTATION_CAPABILITY).isPresent();
-    }
-
     private static void sendReputation(Player player, Entity target, int reputation) {
             player.sendMessage(new TranslatableComponent(REPUTATION_DISPLAY_LOCALIZATION, target, reputation), Util.NIL_UUID);
     }
@@ -250,7 +245,7 @@ public class ForgeEventHandler {
         ItemStack stack = event.getItemStack();
 
         if(!event.getWorld().isClientSide
-                && hasReputationHandling(target)
+                && ReputationHelper.hasVanillaOrModdedReputationHandling(target)
                 && hand == InteractionHand.MAIN_HAND // prevents two messages being sent
                 && stack.isEmpty()
                 && player.isSecondaryUseActive()){
