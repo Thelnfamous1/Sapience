@@ -24,10 +24,14 @@ public class SapienceConfig {
 
         public final ForgeConfigSpec.ConfigValue<Integer> GOLD_STOLEN_GOSSIP_VALUE;
         public final ForgeConfigSpec.ConfigValue<Integer> ADULT_PIGLIN_HURT_GOSSIP_VALUE;
+        public final ForgeConfigSpec.ConfigValue<Integer> ALLY_HURT_GOSSIP_VALUE;
         public final ForgeConfigSpec.ConfigValue<Integer> BABY_PIGLIN_HURT_GOSSIP_VALUE;
 
         public final ForgeConfigSpec.ConfigValue<Integer> ADULT_PIGLIN_KILLED_GOSSIP_VALUE;
         public final ForgeConfigSpec.ConfigValue<Integer> ADULT_PIGLIN_KILLED_BONUS_GOSSIP_VALUE;
+
+        public final ForgeConfigSpec.ConfigValue<Integer> ALLY_KILLED_GOSSIP_VALUE;
+        public final ForgeConfigSpec.ConfigValue<Integer> ALLY_KILLED_BONUS_GOSSIP_VALUE;
 
         public final ForgeConfigSpec.ConfigValue<Integer> BABY_PIGLIN_KILLED_GOSSIP_VALUE;
         public final ForgeConfigSpec.ConfigValue<Integer> BABY_PIGLIN_KILLED_BONUS_GOSSIP_VALUE;
@@ -114,6 +118,9 @@ public class SapienceConfig {
             ADULT_PIGLIN_HURT_GOSSIP_VALUE = builder.comment("The amount of minor negative gossip received from hurting an adult Piglin [0-200, default: 12]")
                     .defineInRange("adultPiglinHurtRepAmount", 12, 0, 200);
 
+            ALLY_HURT_GOSSIP_VALUE = builder.comment("The amount of minor negative gossip received from hurting an ally of the Piglins [0-200, default: 12]")
+                    .defineInRange("allyHurtRepAmount", 12, 0, 200);
+
             BABY_PIGLIN_HURT_GOSSIP_VALUE = builder.comment("The amount of minor negative gossip received from hurting a baby Piglin [0-200, default: 25]")
                     .defineInRange("babyPiglinHurtRepAmount", 25, 0, 200);
 
@@ -123,6 +130,12 @@ public class SapienceConfig {
 
             ADULT_PIGLIN_KILLED_BONUS_GOSSIP_VALUE = builder.comment("The amount of additional minor negative gossip received from Piglins that have seen you kill an adult Piglin [0-200, default: 0]")
                     .defineInRange("adultPiglinKilledRepBonus", 0, 0, 200);
+
+            ALLY_KILLED_GOSSIP_VALUE = builder.comment("The amount of major negative gossip received from Piglins that have seen you kill one of their allies [0-100, default: 25]")
+                    .defineInRange("allyKilledRepAmount", 25, 0, 100);
+
+            ALLY_KILLED_BONUS_GOSSIP_VALUE = builder.comment("The amount of additional minor negative gossip received from Piglins that have seen you kill one of their allies [0-200, default: 0]")
+                    .defineInRange("allyKilledRepBonus", 0, 0, 200);
 
             BABY_PIGLIN_KILLED_GOSSIP_VALUE = builder.comment("The amount of major negative gossip received from Piglins that have seen you kill a baby Piglin [0-100, default: 25]")
                     .defineInRange("babyPiglinKilledRepAmount", 25, 0, 100);

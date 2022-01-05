@@ -25,6 +25,7 @@ import net.minecraftforge.common.util.LazyOptional;
 
 import javax.annotation.Nullable;
 import java.util.Optional;
+import java.util.function.Predicate;
 
 public class ReputationHelper {
 
@@ -76,6 +77,9 @@ public class ReputationHelper {
             else if (type == PiglinReputationType.ADULT_PIGLIN_HURT) {
                 gossipManager.add(target.getUUID(), GossipType.MINOR_NEGATIVE, SapienceConfig.COMMON.ADULT_PIGLIN_HURT_GOSSIP_VALUE.get());
             }
+            else if (type == PiglinReputationType.ALLY_HURT) {
+                gossipManager.add(target.getUUID(), GossipType.MINOR_NEGATIVE, SapienceConfig.COMMON.ALLY_HURT_GOSSIP_VALUE.get());
+            }
             else if (type == PiglinReputationType.BABY_PIGLIN_HURT) {
                 gossipManager.add(target.getUUID(), GossipType.MINOR_NEGATIVE, SapienceConfig.COMMON.BABY_PIGLIN_HURT_GOSSIP_VALUE.get());
             }
@@ -84,6 +88,9 @@ public class ReputationHelper {
             else if (type == PiglinReputationType.ADULT_PIGLIN_KILLED) {
                 gossipManager.add(target.getUUID(), GossipType.MAJOR_NEGATIVE, SapienceConfig.COMMON.ADULT_PIGLIN_KILLED_GOSSIP_VALUE.get());
                 gossipManager.add(target.getUUID(), GossipType.MINOR_NEGATIVE, SapienceConfig.COMMON.ADULT_PIGLIN_KILLED_BONUS_GOSSIP_VALUE.get());
+            } else if (type == PiglinReputationType.ALLY_KILLED) {
+                gossipManager.add(target.getUUID(), GossipType.MAJOR_NEGATIVE, SapienceConfig.COMMON.ALLY_KILLED_GOSSIP_VALUE.get());
+                gossipManager.add(target.getUUID(), GossipType.MINOR_NEGATIVE, SapienceConfig.COMMON.ALLY_KILLED_BONUS_GOSSIP_VALUE.get());
             }
             else if (type == PiglinReputationType.BABY_PIGLIN_KILLED) {
                 gossipManager.add(target.getUUID(), GossipType.MAJOR_NEGATIVE, SapienceConfig.COMMON.BABY_PIGLIN_KILLED_GOSSIP_VALUE.get());
@@ -123,17 +130,17 @@ public class ReputationHelper {
         }
     }
 
-    public static void makeWitnessesOfMurder(LivingEntity victim, Entity murderer, ReputationEventType killedReputationType){
+    public static void makeWitnessesOfMurder(LivingEntity victim, Entity murderer, ReputationEventType killedReputationType, Predicate<LivingEntity> additionalCheck){
         if (victim.level instanceof ServerLevel serverworld) {
             if(victim.getBrain().hasMemoryValue(MemoryModuleType.NEAREST_VISIBLE_LIVING_ENTITIES)){
                 Optional<NearestVisibleLivingEntities> optional = victim.getBrain().getMemory(MemoryModuleType.NEAREST_VISIBLE_LIVING_ENTITIES);
                 optional.ifPresent(nvle -> nvle
-                        .findAll(ReputationHelper::hasModdedReputationHandling)
+                        .findAll(le -> hasModdedReputationHandling(le) && additionalCheck.test(le))
                         .forEach(le -> ReputationHelper.updatePiglinReputation(le, killedReputationType, murderer)));
             } else{ // substitute for mobs that don't have the NEAREST_VISIBLE_LIVING_ENTITIES module
                 final double scale = 16.0D;
                 AABB aabb = victim.getBoundingBox().inflate(scale);
-                serverworld.getEntitiesOfClass(LivingEntity.class, aabb, (le) -> le != victim && le.isAlive() && hasModdedReputationHandling(le))
+                serverworld.getEntitiesOfClass(LivingEntity.class, aabb, (le) -> le != victim && le.isAlive() && hasModdedReputationHandling(le) && additionalCheck.test(le))
                         .forEach(le -> ReputationHelper.updatePiglinReputation(le, killedReputationType, murderer));
             }
         }
@@ -163,8 +170,8 @@ public class ReputationHelper {
     }
 
     // call this whenever a reputation of a player must be considered
-    public static int getEntityReputation(Entity reputationEntity, Entity entityToCheck) {
-        Reputation reputation = getReputationCapability(reputationEntity);
+    public static int getEntityReputation(Entity host, Entity entityToCheck) {
+        Reputation reputation = getReputationCapability(host);
         if(reputation != null){
             // A negative value means bad reputation, a positive value means good reputation
             /*
@@ -209,7 +216,7 @@ public class ReputationHelper {
     }
 
     public static boolean isAllowedToTouchGold(Player playerEntity, Piglin nearbyPiglin) {
-        return getEntityReputation(nearbyPiglin, playerEntity) >= SapienceConfig.COMMON.ALLY_GOSSIP_REQUIREMENT.get()
+        return isAlly(nearbyPiglin, playerEntity)
                 || GeneralHelper.isOnSameTeam(nearbyPiglin, playerEntity);
     }
 
@@ -227,7 +234,11 @@ public class ReputationHelper {
         return target instanceof ReputationEventHandler || hasModdedReputationHandling(target);
     }
 
-    private static boolean hasModdedReputationHandling(Entity target) {
+    public static boolean hasModdedReputationHandling(Entity target) {
         return target.getCapability(ReputationProvider.REPUTATION_CAPABILITY).isPresent();
+    }
+
+    public static boolean isAlly(LivingEntity host, LivingEntity toCheck) {
+        return getEntityReputation(host, toCheck) >= SapienceConfig.COMMON.ALLY_GOSSIP_REQUIREMENT.get();
     }
 }

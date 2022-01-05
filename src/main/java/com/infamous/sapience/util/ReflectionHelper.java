@@ -7,6 +7,7 @@ import net.minecraft.client.model.geom.PartPose;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.ai.Brain;
 import net.minecraft.world.entity.ai.behavior.*;
 import net.minecraft.world.entity.ai.memory.MemoryModuleType;
@@ -14,7 +15,9 @@ import net.minecraft.world.entity.ai.sensing.Sensor;
 import net.minecraft.world.entity.ai.sensing.SensorType;
 import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.entity.monster.hoglin.Hoglin;
+import net.minecraft.world.entity.monster.piglin.AbstractPiglin;
 import net.minecraft.world.entity.monster.piglin.Piglin;
+import net.minecraft.world.entity.monster.piglin.PiglinAi;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.schedule.Activity;
 import net.minecraft.world.item.ItemStack;
@@ -77,15 +80,15 @@ public class ReflectionHelper {
         return (ShufflingList<Behavior<?>>) accessField("f_22871_", gateBehavior, GateBehavior.class).get();
     }
 
-    public static ImmutableList<MemoryModuleType<?>> getMEMORY_TYPES(Piglin piglin) {
+    public static ImmutableList<MemoryModuleType<?>> getMEMORY_TYPES(@Nullable Piglin piglin) {
         return (ImmutableList<MemoryModuleType<?>>) accessField("f_34672_", piglin, Piglin.class).get();
     }
 
-    public static ImmutableList<MemoryModuleType<?>> getMEMORY_TYPES(Hoglin hoglin) {
+    public static ImmutableList<MemoryModuleType<?>> getMEMORY_TYPES(@Nullable Hoglin hoglin) {
         return (ImmutableList<MemoryModuleType<?>>) accessField("f_34481_", hoglin, Hoglin.class).get();
     }
 
-    public static ImmutableList<? extends SensorType<? extends Sensor<? super Hoglin>>> getSENSOR_TYPES(Hoglin hoglin) {
+    public static ImmutableList<? extends SensorType<? extends Sensor<? super Hoglin>>> getSENSOR_TYPES(@Nullable Hoglin hoglin) {
         return (ImmutableList<? extends SensorType<? extends Sensor<? super Hoglin>>>) accessField("f_34480_", hoglin, Hoglin.class).get();
     }
 
@@ -107,6 +110,14 @@ public class ReflectionHelper {
 
     public static MemoryModuleType<?> getMemoryTypeToErase(EraseMemoryIf<?> behavior){
         return (MemoryModuleType<?>) accessField("f_22857_", behavior, EraseMemoryIf.class).get();
+    }
+
+    public static boolean getDead(Mob mob){
+        return (boolean) accessField("f_20890_", mob, Mob.class).get();
+    }
+
+    public static void callSetAngerTargetIfCloserThanCurrent(AbstractPiglin piglin, LivingEntity target){
+        callMethod("m_34962_", (PiglinAi)null, PiglinAi.class, new Object[]{piglin, target}, new Class[]{AbstractPiglin.class, LivingEntity.class});
     }
 
 }

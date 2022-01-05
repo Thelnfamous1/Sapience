@@ -16,6 +16,7 @@ import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.ai.behavior.GoToWantedItem;
 import net.minecraft.world.entity.ai.behavior.RunOne;
 import net.minecraft.world.entity.item.ItemEntity;
@@ -29,6 +30,7 @@ import net.minecraft.world.entity.schedule.Activity;
 import net.minecraft.world.food.FoodProperties;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.phys.AABB;
 import net.minecraftforge.event.AttachCapabilitiesEvent;
 import net.minecraftforge.event.entity.EntityJoinWorldEvent;
 import net.minecraftforge.event.entity.EntityMountEvent;
@@ -98,13 +100,19 @@ public class ForgeEventHandler {
                             PiglinReputationType.BABY_PIGLIN_KILLED :
                             victim instanceof PiglinBrute ?
                                     PiglinReputationType.BRUTE_KILLED :
-                                    PiglinReputationType.ADULT_PIGLIN_KILLED);
+                                    PiglinReputationType.ADULT_PIGLIN_KILLED,
+                    le -> true);
         }
         else if(victim.getType().is(PiglinTasksHelper.PIGLINS_HATE)){
             ReputationHelper.makeWitnessesOfMurder(victim, murderer,
                     isBoss(victim) ?
                             PiglinReputationType.WITHER_KILLED :
-                            PiglinReputationType.WITHER_SKELETON_KILLED);
+                            PiglinReputationType.WITHER_SKELETON_KILLED,
+                    le -> true);
+        } else{
+            ReputationHelper.makeWitnessesOfMurder(victim, murderer,
+                    PiglinReputationType.ALLY_KILLED,
+                    le -> ReputationHelper.isAlly(le, victim) || GeneralHelper.isOnSameTeam(le, victim));
         }
     }
 
@@ -119,6 +127,21 @@ public class ForgeEventHandler {
 
         Entity attacker = event.getSource().getEntity();
         LivingEntity victim = event.getEntityLiving();
+
+        if(!(victim instanceof AbstractPiglin)
+                && attacker instanceof LivingEntity livingAttacker && !(attacker instanceof AbstractPiglin)
+                && victim.level instanceof ServerLevel serverLevel){
+            final double scale = 16.0D;
+            AABB aabb = victim.getBoundingBox().inflate(scale);
+            serverLevel.getEntitiesOfClass(AbstractPiglin.class, aabb, LivingEntity::isAlive)
+                    .forEach(p -> {
+                        if(ReputationHelper.isAlly(p, victim) || GeneralHelper.isOnSameTeam(p, victim)){
+                            ReflectionHelper.callSetAngerTargetIfCloserThanCurrent(p, livingAttacker);
+                            ReputationHelper.updatePiglinReputation(p, PiglinReputationType.ALLY_HURT, attacker);
+                        }
+                    });
+        }
+
         if (victim instanceof Piglin piglin
                 && attacker != null && attacker.level instanceof ServerLevel) {
             ReputationHelper.updatePiglinReputation(
@@ -135,7 +158,12 @@ public class ForgeEventHandler {
 
     @SubscribeEvent
     public static void onPiglinUpdate(LivingEvent.LivingUpdateEvent event){
-        if(event.getEntityLiving() instanceof Piglin piglin){
+        LivingEntity entityLiving = event.getEntityLiving();
+        if(entityLiving instanceof Piglin || entityLiving instanceof Hoglin){
+            GeneralHelper.customLooting((Mob) entityLiving);
+        }
+
+        if(entityLiving instanceof Piglin piglin){
 
             ReputationHelper.updateGossip(piglin);
 

@@ -23,7 +23,7 @@ mixin {
     debug.export = true
 }
 
-version = '1.0.1'
+version = '1.0.2'
 group = 'com.infamous.sapience' // http://maven.apache.org/guides/mini/guide-naming-conventions.html
 archivesBaseName = 'sapience-1.18.1'
 

@@ -15,5 +15,7 @@ public class PiglinReputationType implements ReputationEventType {
     public static final ReputationEventType ADULT_PIGLIN_KILLED = ReputationEventType.register("adult_piglin_killed");
     public static final ReputationEventType BABY_PIGLIN_KILLED = ReputationEventType.register("baby_piglin_killed");
     public static final ReputationEventType BRUTE_KILLED = ReputationEventType.register("brute_killed");
+    public static final ReputationEventType ALLY_HURT = ReputationEventType.register("ally_hurt");
+    public static final ReputationEventType ALLY_KILLED = ReputationEventType.register("ally_killed");
 
 }

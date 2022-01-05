@@ -13,7 +13,8 @@
     "SensorMixin"
   ],
   "client": [
-    "ClientPacketListenerMixin"
+    "ClientPacketListenerMixin",
+    "PiglinModelMixin"
   ],
   "injectors": {
     "defaultRequire": 1

@@ -4,6 +4,10 @@ import com.infamous.sapience.util.BehaviorHelper;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.behavior.Behavior;
+import net.minecraft.world.entity.monster.hoglin.Hoglin;
+import net.minecraft.world.entity.monster.hoglin.HoglinBase;
+import net.minecraft.world.entity.monster.piglin.AbstractPiglin;
+import net.minecraft.world.entity.monster.piglin.Piglin;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -32,17 +36,19 @@ public abstract class BehaviorMixin<E extends LivingEntity> {
     // Potential Forge PR
     @Inject(at = @At("HEAD"), method = "tryStart", cancellable = true)
     private void handleTryStart(ServerLevel serverLevel, E entity, long gameTime, CallbackInfoReturnable<Boolean> cir){
-        if (this.hasRequiredMemories(entity) && enhancedCESC(serverLevel, entity)) {
-            this.status = Behavior.Status.RUNNING;
-            int i = this.minDuration + serverLevel.getRandom().nextInt(this.maxDuration + 1 - this.minDuration);
-            this.endTimestamp = gameTime + (long)i;
-            if(this.preStart(serverLevel, entity, gameTime)){
-                this.start(serverLevel, entity, gameTime);
-                this.postStart(serverLevel, entity, gameTime);
+        if(entity instanceof AbstractPiglin || entity instanceof HoglinBase){
+            if (this.hasRequiredMemories(entity) && this.enhancedCESC(serverLevel, entity)) {
+                this.status = Behavior.Status.RUNNING;
+                int i = this.minDuration + serverLevel.getRandom().nextInt(this.maxDuration + 1 - this.minDuration);
+                this.endTimestamp = gameTime + (long)i;
+                if(this.preStart(serverLevel, entity, gameTime)){
+                    this.start(serverLevel, entity, gameTime);
+                    this.postStart(serverLevel, entity, gameTime);
+                }
+                cir.setReturnValue(true);
+            } else {
+                cir.setReturnValue(false);
             }
-            cir.setReturnValue(true);
-        } else {
-            cir.setReturnValue(false);
         }
     }
 

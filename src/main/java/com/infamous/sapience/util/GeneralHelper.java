@@ -3,20 +3,24 @@ package com.infamous.sapience.util;
 import com.infamous.sapience.Sapience;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.tags.EntityTypeTags;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.ai.memory.MemoryModuleType;
 import net.minecraft.world.entity.animal.Animal;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.monster.hoglin.Hoglin;
 import net.minecraft.world.entity.monster.piglin.Piglin;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.gameevent.GameEvent;
 import net.minecraftforge.common.Tags;
+import net.minecraftforge.event.ForgeEventFactory;
 
 import java.util.Optional;
 
@@ -103,4 +107,37 @@ public class GeneralHelper {
         return attacker.getBrain().getMemory(MemoryModuleType.ATTACK_TARGET);
     }
 
+    public static void customLooting(Mob mob) {
+        if (!mob.level.isClientSide && mob.canPickUpLoot() && mob.isAlive() && !ReflectionHelper.getDead(mob) && ForgeEventFactory.getMobGriefingEvent(mob.level, mob)) {
+            for(ItemEntity itemEntity : mob.level.getEntitiesOfClass(ItemEntity.class, mob.getBoundingBox().inflate(1.0D, 0.0D, 1.0D))) {
+                ItemStack stack = itemEntity.getItem();
+                if (!itemEntity.isRemoved()
+                        && !stack.isEmpty()
+                        && !itemEntity.hasPickUpDelay()
+                        && customWantsToPickUp(mob, stack)) {
+                    customPickUpItem(mob, itemEntity);
+                }
+            }
+        }
+    }
+
+    private static void customPickUpItem(Mob mob, ItemEntity itemEntity) {
+        if(mob instanceof Hoglin hoglin){
+            mob.onItemPickup(itemEntity);
+            HoglinTasksHelper.pickUpHoglinItem(hoglin, itemEntity);
+        } else if(mob instanceof Piglin piglin){
+            mob.onItemPickup(itemEntity);
+            PiglinTasksHelper.pickUpPiglinItem(piglin, itemEntity);
+            if(itemEntity.getThrower() != null && mob.level instanceof ServerLevel){
+                Entity throwerEntity = ((ServerLevel) mob.level).getEntity(itemEntity.getThrower());
+                ReputationHelper.setPreviousInteractor(piglin, throwerEntity);
+            }
+        }
+    }
+
+    public static boolean customWantsToPickUp(Mob mob, ItemStack stack) {
+        return mob instanceof Hoglin hoglin ?
+                HoglinTasksHelper.wantsToPickUp(hoglin, stack) :
+                mob instanceof Piglin piglin && PiglinTasksHelper.wantsToPickUp(piglin, stack);
+    }
 }
