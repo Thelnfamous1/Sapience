@@ -112,8 +112,8 @@ public class ReflectionHelper {
         return (MemoryModuleType<?>) accessField("f_22857_", behavior, EraseMemoryIf.class).get();
     }
 
-    public static boolean getDead(Mob mob){
-        return (boolean) accessField("f_20890_", mob, Mob.class).get();
+    public static boolean getDead(LivingEntity livingEntity){
+        return (boolean) accessField("f_20890_", livingEntity, LivingEntity.class).get();
     }
 
     public static void callSetAngerTargetIfCloserThanCurrent(AbstractPiglin piglin, LivingEntity target){

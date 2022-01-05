@@ -194,7 +194,7 @@ public class ForgeEventHandler {
     }
 
     private static void sendReputation(Player player, Entity target, int reputation) {
-            player.sendMessage(new TranslatableComponent(REPUTATION_DISPLAY_LOCALIZATION, target, reputation), Util.NIL_UUID);
+            player.sendMessage(new TranslatableComponent(REPUTATION_DISPLAY_LOCALIZATION, target.getName(), reputation), Util.NIL_UUID);
     }
 
     @SubscribeEvent
