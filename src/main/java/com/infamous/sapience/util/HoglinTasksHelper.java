@@ -3,6 +3,7 @@ package com.infamous.sapience.util;
 import com.google.common.collect.ImmutableList;
 import com.infamous.sapience.Sapience;
 import net.minecraft.sounds.SoundEvents;
+import net.minecraft.tags.TagKey;
 import net.minecraft.util.TimeUtil;
 import net.minecraft.util.valueproviders.UniformInt;
 import net.minecraft.world.InteractionHand;
@@ -37,14 +38,14 @@ import java.util.List;
 import java.util.Optional;
 
 public class HoglinTasksHelper {
-    public static final Tags.IOptionalNamedTag<Item> HOGLIN_FOOD_ITEMS = ItemTags.createOptional(new ResourceLocation(Sapience.MODID, "hoglin_food_items"));
+    public static final TagKey<Item> HOGLIN_FOOD_ITEMS = ItemTags.create(new ResourceLocation(Sapience.MODID, "hoglin_food_items"));
     public static final int BREEDING_ID = 18;
 
     private static final UniformInt RETREAT_DURATION = TimeUtil.rangeOfSeconds(5, 20);
 
     public static boolean canPickUpItemStack(Animal animalEntity, ItemStack itemStack) {
         Item item = itemStack.getItem();
-        if (item instanceof BlockItem blockItem && BlockTags.HOGLIN_REPELLENTS.contains(blockItem.getBlock())) {
+        if (item instanceof BlockItem blockItem && blockItem.getBlock().m_204297_().m_203656_(BlockTags.HOGLIN_REPELLENTS)) {
             return false;
         } else if (animalEntity.getBrain().hasMemoryValue(MemoryModuleType.ATTACK_TARGET)) {
             return false;
@@ -85,7 +86,7 @@ public class HoglinTasksHelper {
     }
 
     public static boolean isHoglinFoodItem(ItemStack item){
-        return item.is(HoglinTasksHelper.HOGLIN_FOOD_ITEMS);
+        return item.m_204117_(HoglinTasksHelper.HOGLIN_FOOD_ITEMS);
     }
 
     public static void setAteRecently(Animal animalEntity) {

@@ -15,8 +15,8 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
-import net.minecraft.tags.EntityTypeTags;
 import net.minecraft.tags.ItemTags;
+import net.minecraft.tags.TagKey;
 import net.minecraft.util.TimeUtil;
 import net.minecraft.util.valueproviders.UniformInt;
 import net.minecraft.world.InteractionHand;
@@ -45,7 +45,6 @@ import net.minecraft.world.level.storage.loot.LootTable;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.common.Tags;
 
 import java.util.Collections;
 import java.util.List;
@@ -53,13 +52,13 @@ import java.util.Optional;
 import java.util.Random;
 
 public class PiglinTasksHelper {
-    public static final Tags.IOptionalNamedTag<EntityType<?>> PIGLINS_HUNT = EntityTypeTags.createOptional(new ResourceLocation(Sapience.MODID, "piglins_hunt"));
-    public static final Tags.IOptionalNamedTag<EntityType<?>> PIGLINS_AVOID = EntityTypeTags.createOptional(new ResourceLocation(Sapience.MODID, "piglins_avoid"));
-    public static final Tags.IOptionalNamedTag<EntityType<?>> PIGLINS_HATE = EntityTypeTags.createOptional(new ResourceLocation(Sapience.MODID, "piglins_hate"));
+    public static final TagKey<EntityType<?>> PIGLINS_HUNT = GeneralHelper.createEntityTag(new ResourceLocation(Sapience.MODID, "piglins_hunt"));
+    public static final TagKey<EntityType<?>> PIGLINS_AVOID = GeneralHelper.createEntityTag(new ResourceLocation(Sapience.MODID, "piglins_avoid"));
+    public static final TagKey<EntityType<?>> PIGLINS_HATE = GeneralHelper.createEntityTag(new ResourceLocation(Sapience.MODID, "piglins_hate"));
 
-    public static final Tags.IOptionalNamedTag<Item> PIGLINS_BARTER = ItemTags.createOptional(new ResourceLocation(Sapience.MODID, "piglins_barter"));
-    public static final Tags.IOptionalNamedTag<Item> PIGLINS_BARTER_CHEAP = ItemTags.createOptional(new ResourceLocation(Sapience.MODID, "piglins_barter_cheap"));
-    public static final Tags.IOptionalNamedTag<Item> PIGLINS_BARTER_EXPENSIVE = ItemTags.createOptional(new ResourceLocation(Sapience.MODID, "piglins_barter_expensive"));
+    public static final TagKey<Item> PIGLINS_BARTER = ItemTags.create(new ResourceLocation(Sapience.MODID, "piglins_barter"));
+    public static final TagKey<Item> PIGLINS_BARTER_CHEAP = ItemTags.create(new ResourceLocation(Sapience.MODID, "piglins_barter_cheap"));
+    public static final TagKey<Item> PIGLINS_BARTER_EXPENSIVE = ItemTags.create(new ResourceLocation(Sapience.MODID, "piglins_barter_expensive"));
 
     public static final ResourceLocation PIGLIN_BARTERING_CHEAP = new ResourceLocation(Sapience.MODID, "gameplay/piglin_bartering_cheap");
     public static final ResourceLocation PIGLIN_BARTERING_EXPENSIVE = new ResourceLocation(Sapience.MODID, "gameplay/piglin_bartering_expensive");
@@ -105,7 +104,7 @@ public class PiglinTasksHelper {
 
 
     public static boolean isPiglinFoodItem(ItemStack item) {
-        return item.is(ItemTags.PIGLIN_FOOD) && item.isEdible();
+        return item.m_204117_(ItemTags.PIGLIN_FOOD) && item.isEdible();
     }
 
     public static boolean hasAteRecently(AbstractPiglin piglinEntity) {
@@ -117,7 +116,7 @@ public class PiglinTasksHelper {
     }
 
     public static boolean isPiglinLoved(ItemStack item) {
-        return item.is(ItemTags.PIGLIN_LOVED);
+        return item.m_204117_(ItemTags.PIGLIN_LOVED);
     }
 
     private static boolean hasAdmiringDisabled(AbstractPiglin piglinEntity) {
@@ -178,7 +177,7 @@ public class PiglinTasksHelper {
     }
 
     public static boolean isNormalBarterItem(ItemStack item){
-        return item.is(PIGLINS_BARTER);
+        return item.m_204117_(PIGLINS_BARTER);
     }
 
     public static boolean isBarterItem(ItemStack item) {
@@ -326,11 +325,11 @@ public class PiglinTasksHelper {
     }
 
     public static boolean isExpensiveBarterItem(ItemStack item) {
-        return item.is(PIGLINS_BARTER_EXPENSIVE);
+        return item.m_204117_(PIGLINS_BARTER_EXPENSIVE);
     }
 
     public static boolean isCheapBarterItem(ItemStack item) {
-        return item.is(PIGLINS_BARTER_CHEAP);
+        return item.m_204117_(PIGLINS_BARTER_CHEAP);
     }
 
     public static void dropItemsAccountingForNearbyPlayer(AbstractPiglin piglinEntity, List<ItemStack> itemStacks) {
@@ -357,11 +356,11 @@ public class PiglinTasksHelper {
     }
 
     public static boolean piglinsAvoid(EntityType<?> entityType) {
-        return entityType.is(PIGLINS_AVOID);
+        return entityType.m_204039_(PIGLINS_AVOID);
     }
 
     public static boolean piglinsHate(EntityType<?> entityType) {
-        return entityType.is(PIGLINS_HATE);
+        return entityType.m_204039_(PIGLINS_HATE);
     }
 
     public static void additionalSensorLogic(LivingEntity entityIn) {
@@ -475,7 +474,7 @@ public class PiglinTasksHelper {
     }
 
     public static boolean wantsToDance(LivingEntity dancer, LivingEntity victim) {
-        if (victim.getType().is(PIGLINS_HUNT)) {
+        if (victim.getType().m_204039_(PIGLINS_HUNT)) {
             return false;
         } else {
             return (new Random(dancer.level.getGameTime())).nextFloat() < SapienceConfig.COMMON.DANCE_CHANCE.get();
@@ -489,9 +488,9 @@ public class PiglinTasksHelper {
     }
 
     public static boolean piglinWantsToPickUp(Piglin piglin, ItemStack stack) {
-        if (piglin.isBaby() && stack.is(ItemTags.IGNORED_BY_PIGLIN_BABIES)) {
+        if (piglin.isBaby() && stack.m_204117_(ItemTags.IGNORED_BY_PIGLIN_BABIES)) {
             return false;
-        } else if (stack.is(ItemTags.PIGLIN_REPELLENTS)) {
+        } else if (stack.m_204117_(ItemTags.PIGLIN_REPELLENTS)) {
             return false;
         } else if (hasAdmiringDisabled(piglin) && hasAttackTarget(piglin)) {
             return false;
@@ -539,15 +538,17 @@ public class PiglinTasksHelper {
     }
 
     private static void putInInventory(Piglin piglin, ItemStack stack) {
-        ItemStack itemstack;
+        ItemStack remainder;
         if(isBarterItem(stack)){
             CompoundTag tag = stack.getOrCreateTag();
-            itemstack = GreedHelper.addGreedItemToGreedInventory(piglin, stack, tag.getBoolean(GreedHelper.BARTERED));
+            remainder = GreedHelper.addGreedItemToGreedInventory(piglin, stack, tag.getBoolean(GreedHelper.BARTERED));
 
         } else{
-            itemstack = getInventory(piglin).addItem(stack);
+            remainder = getInventory(piglin).addItem(stack);
         }
-        dropItemsNearSelf(piglin, Collections.singletonList(itemstack));
+        if(remainder.isEmpty() || !isPiglinLoved(remainder) && !isBarterItem(remainder)){ // prevents looping
+            dropItemsNearSelf(piglin, Collections.singletonList(remainder));
+        }
     }
 
     public static void stopHoldingOffHandItem(Piglin piglin, boolean doBarter) {

@@ -1,10 +1,12 @@
 package com.infamous.sapience.util;
 
 import com.infamous.sapience.Sapience;
+import net.minecraft.core.Registry;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.tags.EntityTypeTags;
+import net.minecraft.tags.TagKey;
+import net.minecraft.world.Container;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.Entity;
@@ -17,19 +19,20 @@ import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.monster.hoglin.Hoglin;
 import net.minecraft.world.entity.monster.piglin.Piglin;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.gameevent.GameEvent;
-import net.minecraftforge.common.Tags;
 import net.minecraftforge.event.ForgeEventFactory;
 
 import java.util.Optional;
+import java.util.Set;
 
 public class GeneralHelper {
     public static final int ANGER_ID = 16;
     public static final int DECLINE_ID = 6;
     public static final int ACCEPT_ID = 8;
 
-    public static final Tags.IOptionalNamedTag<EntityType<?>> BOSSES = EntityTypeTags.createOptional(new ResourceLocation(Sapience.MODID, "bosses"));
+    public static final TagKey<EntityType<?>> BOSSES = createEntityTag(new ResourceLocation(Sapience.MODID, "bosses"));
 
     public static void spawnParticles(LivingEntity livingEntity, ParticleOptions particleData) {
         for(int i = 0; i < 5; ++i) {
@@ -57,7 +60,7 @@ public class GeneralHelper {
     }
 
     public static EntityType<?> maybeSpoofPiglinsHunt(Entity entity) {
-        return entity.getType().is(PiglinTasksHelper.PIGLINS_HUNT) ? EntityType.HOGLIN : entity.getType();
+        return entity.getType().m_204039_(PiglinTasksHelper.PIGLINS_HUNT) ? EntityType.HOGLIN : entity.getType();
     }
 
     public static EntityType<?> maybeSpoofPiglin(Entity entity) {
@@ -139,5 +142,20 @@ public class GeneralHelper {
         return mob instanceof Hoglin hoglin ?
                 HoglinTasksHelper.wantsToPickUp(hoglin, stack) :
                 mob instanceof Piglin piglin && PiglinTasksHelper.wantsToPickUp(piglin, stack);
+    }
+
+    public static TagKey<EntityType<?>> createEntityTag(ResourceLocation location) {
+        return TagKey.m_203882_(Registry.ENTITY_TYPE_REGISTRY, location);
+    }
+
+    public static boolean hasAnyOf(Container container, TagKey<Item> tagKey) {
+        for(int i = 0; i < container.getContainerSize(); ++i) {
+            ItemStack itemstack = container.getItem(i);
+            if (itemstack.m_204117_(tagKey) && itemstack.getCount() > 0) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

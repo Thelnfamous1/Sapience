@@ -59,7 +59,7 @@ public class BehaviorHelper {
         if(behavior instanceof RememberIfHoglinWasKilled<?>){
             entity.getBrain().getMemory(MemoryModuleType.ATTACK_TARGET).ifPresent(
                     le -> {
-                        if(le.getType().is(PiglinTasksHelper.PIGLINS_HUNT) && le.isDeadOrDying()){
+                        if(le.getType().m_204039_(PiglinTasksHelper.PIGLINS_HUNT) && le.isDeadOrDying()){
                             entity.getBrain().setMemoryWithExpiry(MemoryModuleType.HUNTED_RECENTLY, true, (long)PiglinTasksHelper.TIME_BETWEEN_HUNTS.sample(entity.level.random));
                         }
                     }
