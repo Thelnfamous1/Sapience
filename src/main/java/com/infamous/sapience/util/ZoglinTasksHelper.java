@@ -24,7 +24,7 @@ public class ZoglinTasksHelper {
 
     public static boolean isTargetable(Zoglin zoglin, LivingEntity target) {
         EntityType<?> entitytype = target.getType();
-        return !entitytype.m_204039_(ZOGLINS_IGNORE) && Sensor.isEntityAttackable(zoglin, target);
+        return !entitytype.is(ZOGLINS_IGNORE) && Sensor.isEntityAttackable(zoglin, target);
     }
 
     public static void setAttackTarget(Zoglin zoglin, LivingEntity target) {

@@ -8,7 +8,7 @@ import com.infamous.sapience.capability.greed.GreedProvider;
 import com.infamous.sapience.capability.reputation.ReputationProvider;
 import com.infamous.sapience.util.*;
 import net.minecraft.Util;
-import net.minecraft.network.chat.TranslatableComponent;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.InteractionHand;
@@ -103,7 +103,7 @@ public class ForgeEventHandler {
                                     PiglinReputationType.ADULT_PIGLIN_KILLED,
                     le -> true);
         }
-        else if(victim.getType().m_204039_(PiglinTasksHelper.PIGLINS_HATE)){
+        else if(victim.getType().is(PiglinTasksHelper.PIGLINS_HATE)){
             ReputationHelper.makeWitnessesOfMurder(victim, murderer,
                     isBoss(victim) ?
                             PiglinReputationType.WITHER_KILLED :
@@ -117,7 +117,7 @@ public class ForgeEventHandler {
     }
 
     private static boolean isBoss(LivingEntity victim) {
-        return victim.getType().m_204039_(GeneralHelper.BOSSES);
+        return victim.getType().is(GeneralHelper.BOSSES);
     }
 
     // SERVER ONLY
@@ -194,7 +194,7 @@ public class ForgeEventHandler {
     }
 
     private static void sendReputation(Player player, Entity target, int reputation) {
-            player.sendMessage(new TranslatableComponent(REPUTATION_DISPLAY_LOCALIZATION, target.getName(), reputation), Util.NIL_UUID);
+            player.sendSystemMessage(Component.translatable(REPUTATION_DISPLAY_LOCALIZATION, target.getName(), reputation));
     }
 
     @SubscribeEvent

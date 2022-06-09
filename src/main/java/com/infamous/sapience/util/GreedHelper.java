@@ -140,7 +140,7 @@ public class GreedHelper {
             for(int slotIndex = 0; slotIndex < greed.getGreedInventory().getContainerSize(); slotIndex++){
                 ItemStack stackFromSlot = greed.getGreedInventory().getItem(slotIndex);
                 // If the found stack is a gold ingot
-                if(stackFromSlot.m_204117_(Tags.Items.INGOTS_GOLD) && !stackFromSlot.isEmpty()){
+                if(stackFromSlot.is(Tags.Items.INGOTS_GOLD) && !stackFromSlot.isEmpty()){
                     for(int i = 1; i <= stackFromSlot.getCount(); i++){
                         // split 1 off from the stack and add it to usedStacks
                         usedStacks.add(stackFromSlot.split(1));
@@ -247,15 +247,15 @@ public class GreedHelper {
         if(greed != null){
             if(!stackToAdd.isEmpty()){
                 SimpleContainer greedInventory = greed.getGreedInventory();
-                if (stackToAdd.m_204117_(Tags.Items.INGOTS_GOLD)){
+                if (stackToAdd.is(Tags.Items.INGOTS_GOLD)){
                     return addStackToGreedInventoryCheckBartered(mobEntity, stackToAdd, didBarter);
                 }
-                else if (stackToAdd.m_204117_(Tags.Items.STORAGE_BLOCKS_GOLD)) {
+                else if (stackToAdd.is(Tags.Items.STORAGE_BLOCKS_GOLD)) {
                     int blockCount = stackToAdd.getCount();
                     ItemStack blocksToIngotsStack = new ItemStack(Items.GOLD_INGOT, blockCount * 9);
                     blocksToIngotsStack.setTag(stackToAdd.getTag());
                     return addStackToGreedInventoryCheckBartered(mobEntity, blocksToIngotsStack, didBarter);
-                } else if (stackToAdd.m_204117_(Tags.Items.NUGGETS_GOLD)){
+                } else if (stackToAdd.is(Tags.Items.NUGGETS_GOLD)){
                     return addGoldNuggetsToGreedInventory(mobEntity, stackToAdd, greedInventory, didBarter);
                 }
                 else{
@@ -280,7 +280,7 @@ public class GreedHelper {
         else{
             for(int slotIndex = 0; slotIndex < greedInventory.getContainerSize(); slotIndex++){
                 ItemStack stackInSlot = greedInventory.getItem(slotIndex);
-                if(stackInSlot.m_204117_(Tags.Items.NUGGETS_GOLD) && stackInSlot.getCount() + nuggetCount <= stackInSlot.getMaxStackSize()){
+                if(stackInSlot.is(Tags.Items.NUGGETS_GOLD) && stackInSlot.getCount() + nuggetCount <= stackInSlot.getMaxStackSize()){
                     stackToAdd.shrink(nuggetCount);
                     stackInSlot.grow(nuggetCount);
                     if(stackInSlot.getCount() % 9 == 0){

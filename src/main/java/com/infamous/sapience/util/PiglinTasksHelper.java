@@ -104,7 +104,7 @@ public class PiglinTasksHelper {
 
 
     public static boolean isPiglinFoodItem(ItemStack item) {
-        return item.m_204117_(ItemTags.PIGLIN_FOOD) && item.isEdible();
+        return item.is(ItemTags.PIGLIN_FOOD) && item.isEdible();
     }
 
     public static boolean hasAteRecently(AbstractPiglin piglinEntity) {
@@ -116,7 +116,7 @@ public class PiglinTasksHelper {
     }
 
     public static boolean isPiglinLoved(ItemStack item) {
-        return item.m_204117_(ItemTags.PIGLIN_LOVED);
+        return item.is(ItemTags.PIGLIN_LOVED);
     }
 
     private static boolean hasAdmiringDisabled(AbstractPiglin piglinEntity) {
@@ -177,7 +177,7 @@ public class PiglinTasksHelper {
     }
 
     public static boolean isNormalBarterItem(ItemStack item){
-        return item.m_204117_(PIGLINS_BARTER);
+        return item.is(PIGLINS_BARTER);
     }
 
     public static boolean isBarterItem(ItemStack item) {
@@ -325,11 +325,11 @@ public class PiglinTasksHelper {
     }
 
     public static boolean isExpensiveBarterItem(ItemStack item) {
-        return item.m_204117_(PIGLINS_BARTER_EXPENSIVE);
+        return item.is(PIGLINS_BARTER_EXPENSIVE);
     }
 
     public static boolean isCheapBarterItem(ItemStack item) {
-        return item.m_204117_(PIGLINS_BARTER_CHEAP);
+        return item.is(PIGLINS_BARTER_CHEAP);
     }
 
     public static void dropItemsAccountingForNearbyPlayer(AbstractPiglin piglinEntity, List<ItemStack> itemStacks) {
@@ -356,11 +356,11 @@ public class PiglinTasksHelper {
     }
 
     public static boolean piglinsAvoid(EntityType<?> entityType) {
-        return entityType.m_204039_(PIGLINS_AVOID);
+        return entityType.is(PIGLINS_AVOID);
     }
 
     public static boolean piglinsHate(EntityType<?> entityType) {
-        return entityType.m_204039_(PIGLINS_HATE);
+        return entityType.is(PIGLINS_HATE);
     }
 
     public static void additionalSensorLogic(LivingEntity entityIn) {
@@ -474,7 +474,7 @@ public class PiglinTasksHelper {
     }
 
     public static boolean wantsToDance(LivingEntity dancer, LivingEntity victim) {
-        if (victim.getType().m_204039_(PIGLINS_HUNT)) {
+        if (victim.getType().is(PIGLINS_HUNT)) {
             return false;
         } else {
             return (new Random(dancer.level.getGameTime())).nextFloat() < SapienceConfig.COMMON.DANCE_CHANCE.get();
@@ -488,9 +488,9 @@ public class PiglinTasksHelper {
     }
 
     public static boolean piglinWantsToPickUp(Piglin piglin, ItemStack stack) {
-        if (piglin.isBaby() && stack.m_204117_(ItemTags.IGNORED_BY_PIGLIN_BABIES)) {
+        if (piglin.isBaby() && stack.is(ItemTags.IGNORED_BY_PIGLIN_BABIES)) {
             return false;
-        } else if (stack.m_204117_(ItemTags.PIGLIN_REPELLENTS)) {
+        } else if (stack.is(ItemTags.PIGLIN_REPELLENTS)) {
             return false;
         } else if (hasAdmiringDisabled(piglin) && hasAttackTarget(piglin)) {
             return false;

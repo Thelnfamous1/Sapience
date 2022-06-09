@@ -60,7 +60,7 @@ public class GeneralHelper {
     }
 
     public static EntityType<?> maybeSpoofPiglinsHunt(Entity entity) {
-        return entity.getType().m_204039_(PiglinTasksHelper.PIGLINS_HUNT) ? EntityType.HOGLIN : entity.getType();
+        return entity.getType().is(PiglinTasksHelper.PIGLINS_HUNT) ? EntityType.HOGLIN : entity.getType();
     }
 
     public static EntityType<?> maybeSpoofPiglin(Entity entity) {
@@ -73,14 +73,12 @@ public class GeneralHelper {
         if (!animal.level.isClientSide && age == 0 && animal.canFallInLove()) {
             ReflectionHelper.callUsePlayerItem(animal, player, hand, stack);
             animal.setInLove(player);
-            animal.gameEvent(GameEvent.MOB_INTERACT, animal.eyeBlockPosition());
             return InteractionResult.SUCCESS;
         }
 
         if (animal.isBaby()) {
             ReflectionHelper.callUsePlayerItem(animal, player, hand, stack);
-            animal.ageUp((int)((float)(-age / 20) * 0.1F), true);
-            animal.gameEvent(GameEvent.MOB_INTERACT, animal.eyeBlockPosition());
+            animal.ageUp(Animal.getSpeedUpSecondsWhenFeeding(-age), true);
             return InteractionResult.sidedSuccess(animal.level.isClientSide);
         }
 
@@ -145,13 +143,13 @@ public class GeneralHelper {
     }
 
     public static TagKey<EntityType<?>> createEntityTag(ResourceLocation location) {
-        return TagKey.m_203882_(Registry.ENTITY_TYPE_REGISTRY, location);
+        return TagKey.create(Registry.ENTITY_TYPE_REGISTRY, location);
     }
 
     public static boolean hasAnyOf(Container container, TagKey<Item> tagKey) {
         for(int i = 0; i < container.getContainerSize(); ++i) {
             ItemStack itemstack = container.getItem(i);
-            if (itemstack.m_204117_(tagKey) && itemstack.getCount() > 0) {
+            if (itemstack.is(tagKey) && itemstack.getCount() > 0) {
                 return true;
             }
         }

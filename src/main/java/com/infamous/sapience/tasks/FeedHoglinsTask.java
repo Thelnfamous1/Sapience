@@ -30,7 +30,7 @@ public class FeedHoglinsTask<T extends Piglin> extends Behavior<T> {
 
     @Override
     protected boolean checkExtraStartConditions(ServerLevel serverWorld, T owner) {
-        return PiglinTasksHelper.hasNotFedRecently(owner) && Items.CRIMSON_FUNGUS.m_204114_().m_203656_(HoglinTasksHelper.HOGLIN_FOOD_ITEMS);
+        return PiglinTasksHelper.hasNotFedRecently(owner) && Items.CRIMSON_FUNGUS.builtInRegistryHolder().containsTag(HoglinTasksHelper.HOGLIN_FOOD_ITEMS);
     }
 
     @Override
