@@ -32,7 +32,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.phys.AABB;
 import net.minecraftforge.event.AttachCapabilitiesEvent;
-import net.minecraftforge.event.entity.EntityJoinWorldEvent;
+import net.minecraftforge.event.entity.EntityJoinLevelEvent;
 import net.minecraftforge.event.entity.EntityMountEvent;
 import net.minecraftforge.event.entity.living.*;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
@@ -62,7 +62,7 @@ public class ForgeEventHandler {
         }
     }
     @SubscribeEvent
-    public static void onEntityJoinWorld(EntityJoinWorldEvent event){
+    public static void onEntityJoinWorld(EntityJoinLevelEvent event){
         Entity entity = event.getEntity();
         if(entity instanceof Piglin piglin){
             if(piglin.isBaby() && !entity.level.isClientSide){
@@ -91,7 +91,7 @@ public class ForgeEventHandler {
     @SubscribeEvent
     public static void onLivingDeath(LivingDeathEvent event){
         Entity murderer = event.getSource().getEntity();
-        LivingEntity victim = event.getEntityLiving();
+        LivingEntity victim = event.getEntity();
         if(murderer == null || murderer.level.isClientSide) return;
 
         if(victim instanceof AbstractPiglin){
@@ -126,7 +126,7 @@ public class ForgeEventHandler {
         if(event.isCanceled()) return;
 
         Entity attacker = event.getSource().getEntity();
-        LivingEntity victim = event.getEntityLiving();
+        LivingEntity victim = event.getEntity();
 
         if(!(victim instanceof AbstractPiglin)
                 && attacker instanceof LivingEntity livingAttacker && !(attacker instanceof AbstractPiglin)
@@ -157,8 +157,8 @@ public class ForgeEventHandler {
     }
 
     @SubscribeEvent
-    public static void onPiglinUpdate(LivingEvent.LivingUpdateEvent event){
-        LivingEntity entityLiving = event.getEntityLiving();
+    public static void onPiglinUpdate(LivingEvent.LivingTickEvent event){
+        LivingEntity entityLiving = event.getEntity();
         if(entityLiving instanceof Piglin || entityLiving instanceof Hoglin){
             GeneralHelper.customLooting((Mob) entityLiving);
         }
@@ -199,14 +199,14 @@ public class ForgeEventHandler {
 
     @SubscribeEvent
     public static void onLivingConversion(LivingConversionEvent.Post event){
-        if(event.getEntityLiving() instanceof Piglin piglin){
+        if(event.getEntity() instanceof Piglin piglin){
             GreedHelper.dropGreedItems(piglin);
         }
     }
 
     @SubscribeEvent
     public static void onLivingDrops(LivingDropsEvent event){
-        if(event.getEntityLiving() instanceof Piglin piglin){
+        if(event.getEntity() instanceof Piglin piglin){
             Collection<ItemStack> greedItemsForDrop = GreedHelper.getGreedItemsForDrop(piglin);
             Collection<ItemEntity> drops = event.getDrops();
             greedItemsForDrop.forEach(stack -> {
@@ -250,7 +250,7 @@ public class ForgeEventHandler {
 
     @SubscribeEvent
     public static void onFinishUsingItem(LivingEntityUseItemEvent.Finish event){
-        if(event.getEntityLiving() instanceof Piglin piglin){
+        if(event.getEntity() instanceof Piglin piglin){
             ItemStack itemStack = event.getItem();
             FoodProperties foodProperties = itemStack.getItem().getFoodProperties();
             if (foodProperties != null) {
@@ -267,12 +267,12 @@ public class ForgeEventHandler {
 
     @SubscribeEvent
     public static void onEntityInteract(PlayerInteractEvent.EntityInteract event){
-        Player player = event.getPlayer();
+        Player player = event.getEntity();
         Entity target = event.getTarget();
         InteractionHand hand = event.getHand();
         ItemStack stack = event.getItemStack();
 
-        if(!event.getWorld().isClientSide
+        if(!event.getLevel().isClientSide
                 && ReputationHelper.hasVanillaOrModdedReputationHandling(target)
                 && hand == InteractionHand.MAIN_HAND // prevents two messages being sent
                 && stack.isEmpty()

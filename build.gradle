@@ -17,13 +17,15 @@ apply plugin: 'maven-publish'
 apply plugin: 'org.spongepowered.mixin'
 apply from: 'https://raw.githubusercontent.com/SizableShrimp/Forge-Class-Remapper/main/classremapper.gradle'
 
+apply from: 'https://raw.githubusercontent.com/SizableShrimp/ForgeUpdatesRemapper/main/remapper.gradle'
+
 mixin {
     add sourceSets.main, "sapience.refmap.json"
     config "sapience.mixins.json"
     debug.export = true
 }
 
-version = '1.0.0'
+version = '1.1.0'
 group = 'com.infamous.sapience' // http://maven.apache.org/guides/mini/guide-naming-conventions.html
 archivesBaseName = 'sapience-1.19'
 
@@ -76,7 +78,7 @@ minecraft {
 sourceSets.main.resources { srcDir 'src/generated/resources' }
 
 dependencies {
-    minecraft 'net.minecraftforge:forge:1.19-41.0.4'
+    minecraft 'net.minecraftforge:forge:1.19-41.1.0'
     annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
 }
 jar {
