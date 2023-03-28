@@ -1,6 +1,7 @@
 package com.infamous.sapience.util;
 
-import com.infamous.sapience.Sapience;
+import com.infamous.sapience.mixin.AnimalAccessor;
+import com.infamous.sapience.mixin.MobAccessor;
 import net.minecraft.core.Registry;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.resources.ResourceLocation;
@@ -25,14 +26,11 @@ import net.minecraft.world.level.gameevent.GameEvent;
 import net.minecraftforge.event.ForgeEventFactory;
 
 import java.util.Optional;
-import java.util.Set;
 
 public class GeneralHelper {
     public static final int ANGER_ID = 16;
     public static final int DECLINE_ID = 6;
     public static final int ACCEPT_ID = 8;
-
-    public static final TagKey<EntityType<?>> BOSSES = createEntityTag(new ResourceLocation(Sapience.MODID, "bosses"));
 
     public static void spawnParticles(LivingEntity livingEntity, ParticleOptions particleData) {
         for(int i = 0; i < 5; ++i) {
@@ -71,13 +69,13 @@ public class GeneralHelper {
         ItemStack stack = player.getItemInHand(hand);
         int age = animal.getAge();
         if (!animal.level.isClientSide && age == 0 && animal.canFallInLove()) {
-            ReflectionHelper.callUsePlayerItem(animal, player, hand, stack);
+            ((AnimalAccessor)animal).callUsePlayerItem(player, hand, stack);
             animal.setInLove(player);
             return InteractionResult.SUCCESS;
         }
 
         if (animal.isBaby()) {
-            ReflectionHelper.callUsePlayerItem(animal, player, hand, stack);
+            ((AnimalAccessor)animal).callUsePlayerItem(player, hand, stack);
             animal.ageUp(Animal.getSpeedUpSecondsWhenFeeding(-age), true);
             return InteractionResult.sidedSuccess(animal.level.isClientSide);
         }
@@ -155,5 +153,61 @@ public class GeneralHelper {
         }
 
         return false;
+    }
+
+    public static <M extends Mob> InteractionResult interactOn(Player player, M target, InteractionHand hand, MobInteraction<M> mobInteraction){
+        ItemStack itemInHand = player.getItemInHand(hand);
+        ItemStack copy = itemInHand.copy();
+        InteractionResult interactionresult = interact(target, player, hand, mobInteraction);
+        if (interactionresult.consumesAction()) {
+            if (player.getAbilities().instabuild && itemInHand == player.getItemInHand(hand) && itemInHand.getCount() < copy.getCount()) {
+                itemInHand.setCount(copy.getCount());
+            }
+
+            if (!player.getAbilities().instabuild && itemInHand.isEmpty()) {
+                net.minecraftforge.event.ForgeEventFactory.onPlayerDestroyItem(player, copy, hand);
+            }
+            return interactionresult;
+        } else {
+            if (!itemInHand.isEmpty()) {
+                if (player.getAbilities().instabuild) {
+                    itemInHand = copy;
+                }
+
+                InteractionResult interactionResult = itemInHand.interactLivingEntity(player, target, hand);
+                if (interactionResult.consumesAction()) {
+                    if (itemInHand.isEmpty() && !player.getAbilities().instabuild) {
+                        net.minecraftforge.event.ForgeEventFactory.onPlayerDestroyItem(player, copy, hand);
+                        player.setItemInHand(hand, ItemStack.EMPTY);
+                    }
+
+                    return interactionResult;
+                }
+            }
+
+            return InteractionResult.PASS;
+        }
+    }
+
+    public static <M extends Mob> InteractionResult interact(M mob, Player player, InteractionHand hand, MobInteraction<M> mobInteraction) {
+        if (!mob.isAlive()) {
+            return InteractionResult.PASS;
+        } else if (mob.getLeashHolder() == player) {
+            mob.dropLeash(true, !player.getAbilities().instabuild);
+            return InteractionResult.sidedSuccess(mob.level.isClientSide);
+        } else {
+            InteractionResult interactionResult = ((MobAccessor)mob).callCheckAndHandleImportantInteractions(player, hand);
+            if (interactionResult.consumesAction()) {
+                return interactionResult;
+            } else {
+                interactionResult = mobInteraction.apply(mob, player, hand);
+                if (interactionResult.consumesAction()) {
+                    mob.gameEvent(GameEvent.ENTITY_INTERACT);
+                    return interactionResult;
+                } else {
+                    return InteractionResult.PASS;
+                }
+            }
+        }
     }
 }

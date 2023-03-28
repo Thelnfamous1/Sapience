@@ -7,7 +7,6 @@ import com.infamous.sapience.capability.emotive.EmotiveProvider;
 import com.infamous.sapience.capability.greed.GreedProvider;
 import com.infamous.sapience.capability.reputation.ReputationProvider;
 import com.infamous.sapience.util.*;
-import net.minecraft.Util;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
@@ -31,6 +30,7 @@ import net.minecraft.world.food.FoodProperties;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.phys.AABB;
+import net.minecraftforge.common.Tags;
 import net.minecraftforge.event.AttachCapabilitiesEvent;
 import net.minecraftforge.event.entity.EntityJoinLevelEvent;
 import net.minecraftforge.event.entity.EntityMountEvent;
@@ -117,7 +117,7 @@ public class ForgeEventHandler {
     }
 
     private static boolean isBoss(LivingEntity victim) {
-        return victim.getType().is(GeneralHelper.BOSSES);
+        return victim.getType().is(Tags.EntityTypes.BOSSES);
     }
 
     // SERVER ONLY
@@ -194,7 +194,7 @@ public class ForgeEventHandler {
     }
 
     private static void sendReputation(Player player, Entity target, int reputation) {
-            player.sendSystemMessage(Component.translatable(REPUTATION_DISPLAY_LOCALIZATION, target.getName(), reputation));
+        player.sendSystemMessage(Component.translatable(REPUTATION_DISPLAY_LOCALIZATION, target.getName(), reputation));
     }
 
     @SubscribeEvent
@@ -252,7 +252,7 @@ public class ForgeEventHandler {
     public static void onFinishUsingItem(LivingEntityUseItemEvent.Finish event){
         if(event.getEntity() instanceof Piglin piglin){
             ItemStack itemStack = event.getItem();
-            FoodProperties foodProperties = itemStack.getItem().getFoodProperties();
+            FoodProperties foodProperties = itemStack.getFoodProperties(piglin);
             if (foodProperties != null) {
                 int nutrition = foodProperties.getNutrition();
                 piglin.heal(nutrition); // heals the piglin by an amount equal to the food's hunger value
@@ -283,43 +283,32 @@ public class ForgeEventHandler {
             sendReputation(player, target, reputation);
         }
 
+        if(player.isSecondaryUseActive()) return;
+
         if(target instanceof Piglin piglin){
-            if(player.isSecondaryUseActive()){
-                event.setCancellationResult(InteractionResult.PASS);
-            } else {
-                InteractionResult piglinInteractResult = PiglinTasksHelper.handlePiglinInteraction(piglin, player, hand);
-                if(piglinInteractResult.consumesAction()){
-                    handleCustomInteraction(event, player, hand, stack, piglinInteractResult);
-                    PiglinTasksHelper.handlePiglinInteractPost(piglin, player, piglinInteractResult);
-                }
+            InteractionResult interactOn = GeneralHelper.interactOn(player, piglin, hand, PiglinTasksHelper::handlePiglinInteraction);
+            cancelWithResult(event, interactOn);
+            if(interactOn.consumesAction()){
+                PiglinTasksHelper.handlePiglinInteractPost(piglin, player, interactOn);
             }
         } else if(target instanceof Hoglin hoglin){
             if(HoglinTasksHelper.isHoglinFoodItem(stack)){
-                InteractionResult hoglinInteractResult = GeneralHelper.handleGiveAnimalFood(hoglin, player, hand);
-                if(hoglinInteractResult.consumesAction()){
-                    handleCustomInteraction(event, player, hand, stack, hoglinInteractResult);
+                InteractionResult interactOn = GeneralHelper.interactOn(player, hoglin, hand, GeneralHelper::handleGiveAnimalFood);
+                cancelWithResult(event, interactOn);
+                if(interactOn.consumesAction()){
                     HoglinTasksHelper.handleHoglinInteractPost(hoglin, player, hand, InteractionResult.PASS);
                     hoglin.setPersistenceRequired();
                 }
             } else if(stack.is(Items.CRIMSON_FUNGUS)){
-                handleCustomInteraction(event, player, hand, stack, InteractionResult.PASS);
+                InteractionResult interactOn = GeneralHelper.interactOn(player, hoglin, hand, MobInteraction::pass);
+                cancelWithResult(event, interactOn);
                 HoglinTasksHelper.handleHoglinInteractPost(hoglin, player, hand, InteractionResult.PASS);
             }
         }
     }
 
-    private static void handleCustomInteraction(PlayerInteractEvent.EntityInteract event, Player player, InteractionHand hand, ItemStack stack, InteractionResult customResult) {
-        event.setCancellationResult(customResult);
-        ItemStack stackInHand = player.getItemInHand(hand);
-        ItemStack copyStack = stack.copy();
-        if (customResult.consumesAction()) {
-            if (player.getAbilities().instabuild && stackInHand == player.getItemInHand(hand) && stackInHand.getCount() < copyStack.getCount()) {
-                stackInHand.setCount(copyStack.getCount()); // restores stack count if in creative mode
-            }
-
-            if (!player.getAbilities().instabuild && stackInHand.isEmpty()) {
-                net.minecraftforge.event.ForgeEventFactory.onPlayerDestroyItem(player, copyStack, hand);
-            }
-        }
+    private static void cancelWithResult(PlayerInteractEvent.EntityInteract event, InteractionResult result) {
+        event.setCanceled(true);
+        event.setCancellationResult(result);
     }
 }

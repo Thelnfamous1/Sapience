@@ -4,10 +4,8 @@ import com.google.common.collect.ImmutableList;
 import com.infamous.sapience.Sapience;
 import net.minecraft.client.model.PiglinModel;
 import net.minecraft.client.model.geom.PartPose;
-import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.ai.Brain;
 import net.minecraft.world.entity.ai.behavior.*;
 import net.minecraft.world.entity.ai.memory.MemoryModuleType;
@@ -18,7 +16,6 @@ import net.minecraft.world.entity.monster.hoglin.Hoglin;
 import net.minecraft.world.entity.monster.piglin.AbstractPiglin;
 import net.minecraft.world.entity.monster.piglin.Piglin;
 import net.minecraft.world.entity.monster.piglin.PiglinAi;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.schedule.Activity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.fml.util.ObfuscationReflectionHelper;
@@ -53,10 +50,6 @@ public class ReflectionHelper {
             Sapience.LOGGER.info("Reflection error for field {}! Invoked on {}", fieldName, inClass);
             return Optional.empty();
         }
-    }
-
-    public static void callUsePlayerItem(Animal animal, Player player, InteractionHand hand, ItemStack stack) {
-        callMethod("m_142075_", animal, Animal.class, new Object[]{player, hand, stack}, new Class<?>[]{Player.class, InteractionHand.class, ItemStack.class});
     }
 
     public static long getSpawnChildAtTime(AnimalMakeLove behavior){

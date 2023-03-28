@@ -5,8 +5,10 @@
   "minVersion": "0.8.5",
   "refmap": "sapience.refmap.json",
   "mixins": [
+    "AnimalAccessor",
     "BehaviorMixin",
     "BrainMixin",
+    "MobAccessor",
     "MobMixin",
     "PiglinTasksMixin",
     "PlayerMixin",
