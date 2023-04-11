@@ -127,9 +127,9 @@ public class GeneralHelper {
         } else if(mob instanceof Piglin piglin){
             mob.onItemPickup(itemEntity);
             PiglinTasksHelper.pickUpPiglinItem(piglin, itemEntity);
-            if(itemEntity.getThrower() != null && mob.level instanceof ServerLevel){
-                Entity throwerEntity = ((ServerLevel) mob.level).getEntity(itemEntity.getThrower());
-                ReputationHelper.setPreviousInteractor(piglin, throwerEntity);
+            if(mob.level instanceof ServerLevel){
+                Entity throwerEntity = itemEntity.getOwner();
+                if(throwerEntity != null) ReputationHelper.setPreviousInteractor(piglin, throwerEntity);
             }
         }
     }
