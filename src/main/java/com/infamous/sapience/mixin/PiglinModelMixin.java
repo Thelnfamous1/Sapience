@@ -26,7 +26,7 @@ public class PiglinModelMixin<T extends Mob> extends PlayerModel<T> {
         super(bakedLayer, smallArms);
     }
 
-    @Inject(at = @At(value = "TAIL"), method = "setupAnim")
+    @Inject(at = @At(value = "TAIL"), method = "setupAnim(Lnet/minecraft/world/entity/Mob;FFFFF)V")
     private void postSetupAnim(T piglinLike, float limbSwing, float limbSwingAmount, float ageInTicks, float netHeadYaw, float headPitch, CallbackInfo ci){
         if(piglinLike instanceof Piglin piglin){
             this.handleCustomAdmiringAnimation(piglin);

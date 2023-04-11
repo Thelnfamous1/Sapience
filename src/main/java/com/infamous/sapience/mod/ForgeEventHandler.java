@@ -83,7 +83,7 @@ public class ForgeEventHandler {
         if(entity instanceof Hoglin hoglin){
             hoglin.setCanPickUpLoot(true);
             BrainHelper.addAdditionalTasks(hoglin.getBrain(), Activity.CORE, 2,
-                    new GoToWantedItem<>(1.0F, true, 9));
+                    GoToWantedItem.create(1.0F, true, 9));
         }
     }
 

@@ -419,7 +419,7 @@ public class PiglinTasksHelper {
 
     public static void addAdditionalIdleMovementBehaviors(GateBehavior<Piglin> gateBehavior) {
         BrainHelper.addToGateBehavior(gateBehavior,
-                Pair.of(new InteractWith<>(
+                Pair.of(InteractWith.of(
                         EntityType.PIGLIN, 8,
                         AgeableHelper::canBreed,
                         AgeableHelper::canBreed,
@@ -473,7 +473,7 @@ public class PiglinTasksHelper {
         return isPiglinLoved(stack) || isBarterItem(stack);
     }
 
-    public static boolean wantsToDance(LivingEntity dancer, LivingEntity victim) {
+    public static boolean wantsToDance(Piglin dancer, LivingEntity victim) {
         if (victim.getType().is(PIGLINS_HUNT)) {
             return false;
         } else {
@@ -526,7 +526,7 @@ public class PiglinTasksHelper {
             dropOffhandItemAndSetItemStackToOffhand(piglin, itemstack);
             setAdmiringItem(piglin);
         } else {
-            boolean equippedItem = piglin.equipItemIfPossible(itemstack);
+            boolean equippedItem = !piglin.equipItemIfPossible(itemstack).isEmpty();
             if (!equippedItem) {
                 putInInventory(piglin, itemstack);
             }
@@ -573,13 +573,13 @@ public class PiglinTasksHelper {
                 if(isPiglinLoved(offHandItem)){
                     ReputationHelper.updatePreviousInteractorReputation(piglin, PiglinReputationType.GOLD_GIFT);
                 }
-                boolean equippedItem = piglin.equipItemIfPossible(offHandItem);
+                boolean equippedItem = !piglin.equipItemIfPossible(offHandItem).isEmpty();
                 if (!equippedItem) {
                     putInInventory(piglin, offHandItem);
                 }
             }
         } else {
-            boolean equippedItem = piglin.equipItemIfPossible(offHandItem);
+            boolean equippedItem = !piglin.equipItemIfPossible(offHandItem).isEmpty();
             if (!equippedItem) {
                 ItemStack mainHandItem = piglin.getMainHandItem();
                 if (isPiglinLoved(mainHandItem)) {

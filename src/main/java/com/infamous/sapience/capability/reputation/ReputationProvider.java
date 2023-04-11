@@ -33,7 +33,7 @@ public class ReputationProvider implements ICapabilitySerializable<CompoundTag> 
         Reputation instance = this.instance.orElseThrow(() -> new IllegalArgumentException("LazyOptional must not be empty!"));
         CompoundTag tag = new CompoundTag();
 
-        tag.put("Gossips", instance.getGossipManager().store(NbtOps.INSTANCE).getValue());
+        tag.put("Gossips", instance.getGossipManager().store(NbtOps.INSTANCE));
         tag.putLong("LastGossipDecay", instance.getLastGossipDecay());
         if(instance.getPreviousInteractor() != null){
             tag.putUUID("PreviousInteractor", instance.getPreviousInteractor());

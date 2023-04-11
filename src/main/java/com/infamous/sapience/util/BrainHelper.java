@@ -5,7 +5,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.mojang.datafixers.util.Pair;
 import net.minecraft.world.entity.ai.Brain;
-import net.minecraft.world.entity.ai.behavior.Behavior;
+import net.minecraft.world.entity.ai.behavior.BehaviorControl;
 import net.minecraft.world.entity.ai.behavior.GateBehavior;
 import net.minecraft.world.entity.ai.memory.MemoryModuleType;
 import net.minecraft.world.entity.ai.sensing.Sensor;
@@ -20,19 +20,19 @@ import java.util.function.Predicate;
 
 public class BrainHelper {
 
-    public static ImmutableList<? extends Pair<Integer, ? extends Behavior<?>>> createPriorityPairs(int priorityStart, List<? extends Behavior<?>> tasks) {
+    public static ImmutableList<? extends Pair<Integer, ? extends BehaviorControl<?>>> createPriorityPairs(int priorityStart, List<? extends BehaviorControl<?>> tasks) {
         int priorityIndex = priorityStart;
-        ImmutableList.Builder<Pair<Integer, ? extends Behavior<?>>> priorityPairs = ImmutableList.builder();
+        ImmutableList.Builder<Pair<Integer, ? extends BehaviorControl<?>>> priorityPairs = ImmutableList.builder();
 
-        for(Behavior<?> task : tasks) {
+        for(BehaviorControl<?> task : tasks) {
             priorityPairs.add(Pair.of(priorityIndex++, task));
         }
 
         return priorityPairs.build();
     }
-    public static void addPrioritizedBehaviors(Activity activity, List<? extends Pair<Integer, ? extends Behavior<?>>> prioritizedTasks, Brain<?> brain) {
+    public static void addPrioritizedBehaviors(Activity activity, List<? extends Pair<Integer, ? extends BehaviorControl<?>>> prioritizedTasks, Brain<?> brain) {
 
-        for(Pair<Integer, ? extends Behavior<?>> pair : prioritizedTasks) {
+        for(Pair<Integer, ? extends BehaviorControl<?>> pair : prioritizedTasks) {
             ReflectionHelper.getAvailableBehaviorsByPriority(brain)
                     .computeIfAbsent(pair.getFirst(), (p) -> Maps.newHashMap())
                     .computeIfAbsent(activity, (a) -> Sets.newLinkedHashSet())
@@ -40,7 +40,7 @@ public class BrainHelper {
         }
     }
 
-    public static Optional<Behavior<?>> retrieveFirstAvailableTask(Brain<?> brain, Activity activityType, int priority, Predicate<Behavior<?>> predicate){
+    public static Optional<BehaviorControl<?>> retrieveFirstAvailableTask(Brain<?> brain, Activity activityType, int priority, Predicate<BehaviorControl<?>> predicate){
         return ReflectionHelper.getAvailableBehaviorsByPriority(brain)
                 .get(priority)
                 .get(activityType)
@@ -49,17 +49,17 @@ public class BrainHelper {
                 .findFirst();
     }
 
-    public static void addAdditionalTasks(Brain<?> brain, Activity activityType, int priorityStart, Behavior<?>... tasks) {
-        List<? extends Behavior<?>> additionalCoreTasks = Arrays.asList(tasks);
+    public static void addAdditionalTasks(Brain<?> brain, Activity activityType, int priorityStart, BehaviorControl<?>... tasks) {
+        List<? extends BehaviorControl<?>> additionalCoreTasks = Arrays.asList(tasks);
 
-        ImmutableList<? extends Pair<Integer, ? extends Behavior<?>>> prioritizedAdditionalCoreTasks =
+        ImmutableList<? extends Pair<Integer, ? extends BehaviorControl<?>>> prioritizedAdditionalCoreTasks =
                 createPriorityPairs(priorityStart, additionalCoreTasks);
 
         addPrioritizedBehaviors(activityType, prioritizedAdditionalCoreTasks, brain);
     }
 
-    public static void addToGateBehavior(GateBehavior<?> gateBehavior, Pair<Behavior<?>, Integer>... weightedTasks){
-        for(Pair<Behavior<?>, Integer> weightedBehavior : weightedTasks){
+    public static void addToGateBehavior(GateBehavior<?> gateBehavior, Pair<BehaviorControl<?>, Integer>... weightedTasks){
+        for(Pair<BehaviorControl<?>, Integer> weightedBehavior : weightedTasks){
             ReflectionHelper.getBehaviors(gateBehavior).add(weightedBehavior.getFirst(), weightedBehavior.getSecond());
         }
     }

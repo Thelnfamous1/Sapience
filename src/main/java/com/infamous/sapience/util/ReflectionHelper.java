@@ -64,13 +64,13 @@ public class ReflectionHelper {
         return (EntityType<? extends Animal>) accessField("f_22387_", behavior, behavior.getClass()).get();
     }
 
-    public static Map<Integer, Map<Activity, Set<Behavior<? extends LivingEntity>>>> getAvailableBehaviorsByPriority(Brain<?> brain){
-        return (Map<Integer, Map<Activity, Set<Behavior<? extends LivingEntity>>>>) accessField("f_21845_", brain, brain.getClass()).get();
+    public static Map<Integer, Map<Activity, Set<BehaviorControl<? extends LivingEntity>>>> getAvailableBehaviorsByPriority(Brain<?> brain){
+        return (Map<Integer, Map<Activity, Set<BehaviorControl<? extends LivingEntity>>>>) accessField("f_21845_", brain, brain.getClass()).get();
     }
 
 
-    public static ShufflingList<Behavior<?>> getBehaviors(GateBehavior<?> gateBehavior){
-        return (ShufflingList<Behavior<?>>) accessField("f_22871_", gateBehavior, GateBehavior.class).get();
+    public static ShufflingList<BehaviorControl<?>> getBehaviors(GateBehavior<?> gateBehavior){
+        return (ShufflingList<BehaviorControl<?>>) accessField("f_22871_", gateBehavior, GateBehavior.class).get();
     }
 
     public static ImmutableList<MemoryModuleType<?>> getMEMORY_TYPES(@Nullable Piglin piglin) {
@@ -99,10 +99,6 @@ public class ReflectionHelper {
 
     public static boolean callCanReplaceCurrentItem(Piglin piglin, ItemStack stack){
         return (boolean) callMethod("m_34787_", piglin, Piglin.class, new Object[]{stack}, new Class<?>[]{ItemStack.class}).get();
-    }
-
-    public static MemoryModuleType<?> getMemoryTypeToErase(EraseMemoryIf<?> behavior){
-        return (MemoryModuleType<?>) accessField("f_22857_", behavior, EraseMemoryIf.class).get();
     }
 
     public static boolean getDead(LivingEntity livingEntity){

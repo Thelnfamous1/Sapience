@@ -6,13 +6,19 @@
   "refmap": "sapience.refmap.json",
   "mixins": [
     "AnimalAccessor",
-    "BehaviorMixin",
     "BrainMixin",
+    "EraseMemoryIfMixin",
+    "MemoryAccessorAccessor",
     "MobAccessor",
     "MobMixin",
     "PiglinTasksMixin",
     "PlayerMixin",
-    "SensorMixin"
+    "RememberIfHoglinWasKilledMixin",
+    "SensorMixin",
+    "StartAdmiringItemIfSeenMixin",
+    "StartAttackingMixin",
+    "StartCelebratingIfTargetDeadMixin",
+    "StopHoldingItemIfNoLongerAdmiringMixin"
   ],
   "client": [
     "ClientPacketListenerMixin",

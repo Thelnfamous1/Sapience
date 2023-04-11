@@ -2,8 +2,8 @@ package com.infamous.sapience.util;
 
 import com.infamous.sapience.mixin.AnimalAccessor;
 import com.infamous.sapience.mixin.MobAccessor;
-import net.minecraft.core.Registry;
 import net.minecraft.core.particles.ParticleOptions;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.tags.TagKey;
@@ -141,7 +141,7 @@ public class GeneralHelper {
     }
 
     public static TagKey<EntityType<?>> createEntityTag(ResourceLocation location) {
-        return TagKey.create(Registry.ENTITY_TYPE_REGISTRY, location);
+        return TagKey.create(Registries.ENTITY_TYPE, location);
     }
 
     public static boolean hasAnyOf(Container container, TagKey<Item> tagKey) {
