@@ -25,7 +25,7 @@ mixin {
     debug.export = true
 }
 
-version = '1.19.3-1.0.0'
+version = '1.19.3-1.0.1'
 group = 'com.infamous.sapience' // http://maven.apache.org/guides/mini/guide-naming-conventions.html
 archivesBaseName = 'sapience'
 
@@ -77,9 +77,30 @@ minecraft {
 
 sourceSets.main.resources { srcDir 'src/generated/resources' }
 
+repositories {
+    // Put repositories for dependencies here
+    // ForgeGradle automatically adds the Forge maven and Maven Central for you
+
+    // If you have mod jar dependencies in ./libs, you can declare them as a repository like so:
+    // flatDir {
+    //     dir 'libs'
+    // }
+    maven {
+        url "https://cursemaven.com"
+        content {
+            includeGroup "curse.maven"
+        }
+    }
+    // Per LlamaLad's recommendation
+    maven {
+        url "https://maven.fabricmc.net/"
+    }
+}
+
 dependencies {
     minecraft 'net.minecraftforge:forge:1.19.3-44.1.23'
-    annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
+    // Per LlamaLad's recommendation
+    annotationProcessor 'net.fabricmc:sponge-mixin:0.12.4+mixin.0.8.5'
 }
 jar {
     manifest {
