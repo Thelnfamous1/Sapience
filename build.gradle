@@ -25,7 +25,7 @@ mixin {
     debug.export = true
 }
 
-version = '1.1.0'
+version = '1.1.1'
 group = 'com.infamous.sapience' // http://maven.apache.org/guides/mini/guide-naming-conventions.html
 archivesBaseName = 'sapience-1.19'
 
