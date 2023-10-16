@@ -65,7 +65,7 @@ public class ForgeEventHandler {
     public static void onEntityJoinWorld(EntityJoinLevelEvent event){
         Entity entity = event.getEntity();
         if(entity instanceof Piglin piglin){
-            if(piglin.isBaby() && !entity.level.isClientSide){
+            if(piglin.isBaby() && !entity.level().isClientSide){
                 AgeableHelper.initializeChild(piglin);
             }
 
@@ -92,7 +92,7 @@ public class ForgeEventHandler {
     public static void onLivingDeath(LivingDeathEvent event){
         Entity murderer = event.getSource().getEntity();
         LivingEntity victim = event.getEntity();
-        if(murderer == null || murderer.level.isClientSide) return;
+        if(murderer == null || murderer.level().isClientSide) return;
 
         if(victim instanceof AbstractPiglin){
             ReputationHelper.makeWitnessesOfMurder(victim, murderer,
@@ -130,7 +130,7 @@ public class ForgeEventHandler {
 
         if(!(victim instanceof AbstractPiglin)
                 && attacker instanceof LivingEntity livingAttacker && !(attacker instanceof AbstractPiglin)
-                && victim.level instanceof ServerLevel serverLevel){
+                && victim.level() instanceof ServerLevel serverLevel){
             final double scale = 16.0D;
             AABB aabb = victim.getBoundingBox().inflate(scale);
             serverLevel.getEntitiesOfClass(AbstractPiglin.class, aabb, LivingEntity::isAlive)
@@ -143,7 +143,7 @@ public class ForgeEventHandler {
         }
 
         if (victim instanceof Piglin piglin
-                && attacker != null && attacker.level instanceof ServerLevel) {
+                && attacker != null && attacker.level() instanceof ServerLevel) {
             ReputationHelper.updatePiglinReputation(
                     piglin,
                     piglin.isBaby() ? PiglinReputationType.BABY_PIGLIN_HURT : PiglinReputationType.ADULT_PIGLIN_HURT,
@@ -180,7 +180,7 @@ public class ForgeEventHandler {
                     }
             );
 
-            if(!piglin.level.isClientSide){
+            if(!piglin.level().isClientSide){
                 Ageable ageable = AgeableHelper.getAgeableCapability(piglin);
                 if(ageable != null){
                     if (piglin.isAlive()) {
@@ -210,7 +210,7 @@ public class ForgeEventHandler {
             Collection<ItemStack> greedItemsForDrop = GreedHelper.getGreedItemsForDrop(piglin);
             Collection<ItemEntity> drops = event.getDrops();
             greedItemsForDrop.forEach(stack -> {
-                ItemEntity itemEntity = new ItemEntity(piglin.level, piglin.getX(), piglin.getY(), piglin.getZ(), stack);
+                ItemEntity itemEntity = new ItemEntity(piglin.level(), piglin.getX(), piglin.getY(), piglin.getZ(), stack);
                 itemEntity.setDefaultPickUpDelay();
                 drops.add(itemEntity);
             });
@@ -257,7 +257,7 @@ public class ForgeEventHandler {
                 int nutrition = foodProperties.getNutrition();
                 piglin.heal(nutrition); // heals the piglin by an amount equal to the food's hunger value
                 AgeableHelper.increaseFoodLevel(piglin, nutrition);
-                if(!piglin.level.isClientSide){
+                if(!piglin.level().isClientSide){
                     PiglinTasksHelper.setAteRecently(piglin);
                     ReputationHelper.updatePreviousInteractorReputation(piglin, PiglinReputationType.FOOD_GIFT);
                 }

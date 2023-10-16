@@ -32,7 +32,5 @@ public class ZoglinTasksHelper {
         if (changeTargetEvent.isCanceled()) return;
         zoglin.getBrain().setMemory(MemoryModuleType.ATTACK_TARGET, target);
         zoglin.getBrain().eraseMemory(MemoryModuleType.CANT_REACH_WALK_TARGET_SINCE);
-        ForgeHooks.onLivingSetAttackTarget(zoglin, changeTargetEvent.getNewTarget(), LivingChangeTargetEvent.LivingTargetType.BEHAVIOR_TARGET); // TODO: Remove in 1.20
-
     }
 }

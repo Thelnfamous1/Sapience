@@ -37,7 +37,7 @@ public class GeneralHelper {
             double randomXSpeed = livingEntity.getRandom().nextGaussian() * 0.02D;
             double randomYSpeed = livingEntity.getRandom().nextGaussian() * 0.02D;
             double randomZSpeed = livingEntity.getRandom().nextGaussian() * 0.02D;
-            livingEntity.level.addParticle(particleData, livingEntity.getRandomX(1.0D), livingEntity.getRandomY() + 1.0D, livingEntity.getRandomZ(1.0D), randomXSpeed, randomYSpeed, randomZSpeed);
+            livingEntity.level().addParticle(particleData, livingEntity.getRandomX(1.0D), livingEntity.getRandomY() + 1.0D, livingEntity.getRandomZ(1.0D), randomXSpeed, randomYSpeed, randomZSpeed);
         }
     }
 
@@ -68,7 +68,7 @@ public class GeneralHelper {
     public static InteractionResult handleGiveAnimalFood(Animal animal, Player player, InteractionHand hand){
         ItemStack stack = player.getItemInHand(hand);
         int age = animal.getAge();
-        if (!animal.level.isClientSide && age == 0 && animal.canFallInLove()) {
+        if (!animal.level().isClientSide && age == 0 && animal.canFallInLove()) {
             ((AnimalAccessor)animal).callUsePlayerItem(player, hand, stack);
             animal.setInLove(player);
             return InteractionResult.SUCCESS;
@@ -77,10 +77,10 @@ public class GeneralHelper {
         if (animal.isBaby()) {
             ((AnimalAccessor)animal).callUsePlayerItem(player, hand, stack);
             animal.ageUp(Animal.getSpeedUpSecondsWhenFeeding(-age), true);
-            return InteractionResult.sidedSuccess(animal.level.isClientSide);
+            return InteractionResult.sidedSuccess(animal.level().isClientSide);
         }
 
-        if (animal.level.isClientSide) {
+        if (animal.level().isClientSide) {
             return InteractionResult.CONSUME;
         }
 
@@ -107,8 +107,8 @@ public class GeneralHelper {
     }
 
     public static void customLooting(Mob mob) {
-        if (!mob.level.isClientSide && mob.canPickUpLoot() && mob.isAlive() && !ReflectionHelper.getDead(mob) && ForgeEventFactory.getMobGriefingEvent(mob.level, mob)) {
-            for(ItemEntity itemEntity : mob.level.getEntitiesOfClass(ItemEntity.class, mob.getBoundingBox().inflate(1.0D, 0.0D, 1.0D))) {
+        if (!mob.level().isClientSide && mob.canPickUpLoot() && mob.isAlive() && !ReflectionHelper.getDead(mob) && ForgeEventFactory.getMobGriefingEvent(mob.level(), mob)) {
+            for(ItemEntity itemEntity : mob.level().getEntitiesOfClass(ItemEntity.class, mob.getBoundingBox().inflate(1.0D, 0.0D, 1.0D))) {
                 ItemStack stack = itemEntity.getItem();
                 if (!itemEntity.isRemoved()
                         && !stack.isEmpty()
@@ -127,7 +127,7 @@ public class GeneralHelper {
         } else if(mob instanceof Piglin piglin){
             mob.onItemPickup(itemEntity);
             PiglinTasksHelper.pickUpPiglinItem(piglin, itemEntity);
-            if(mob.level instanceof ServerLevel){
+            if(mob.level() instanceof ServerLevel){
                 Entity throwerEntity = itemEntity.getOwner();
                 if(throwerEntity != null) ReputationHelper.setPreviousInteractor(piglin, throwerEntity);
             }
@@ -194,7 +194,7 @@ public class GeneralHelper {
             return InteractionResult.PASS;
         } else if (mob.getLeashHolder() == player) {
             mob.dropLeash(true, !player.getAbilities().instabuild);
-            return InteractionResult.sidedSuccess(mob.level.isClientSide);
+            return InteractionResult.sidedSuccess(mob.level().isClientSide);
         } else {
             InteractionResult interactionResult = ((MobAccessor)mob).callCheckAndHandleImportantInteractions(player, hand);
             if (interactionResult.consumesAction()) {

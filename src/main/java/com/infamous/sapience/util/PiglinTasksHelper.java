@@ -24,7 +24,9 @@ import net.minecraft.world.InteractionResult;
 import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.entity.*;
 import net.minecraft.world.entity.ai.Brain;
-import net.minecraft.world.entity.ai.behavior.*;
+import net.minecraft.world.entity.ai.behavior.BehaviorUtils;
+import net.minecraft.world.entity.ai.behavior.GateBehavior;
+import net.minecraft.world.entity.ai.behavior.InteractWith;
 import net.minecraft.world.entity.ai.memory.MemoryModuleType;
 import net.minecraft.world.entity.ai.memory.NearestVisibleLivingEntities;
 import net.minecraft.world.entity.ai.util.LandRandomPos;
@@ -40,7 +42,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.UseAnim;
 import net.minecraft.world.level.GameRules;
 import net.minecraft.world.level.storage.loot.BuiltInLootTables;
-import net.minecraft.world.level.storage.loot.LootContext;
+import net.minecraft.world.level.storage.loot.LootParams;
 import net.minecraft.world.level.storage.loot.LootTable;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
@@ -129,7 +131,7 @@ public class PiglinTasksHelper {
     }
 
     public static void setFedRecently(Piglin piglinEntity) {
-        piglinEntity.getBrain().setMemoryWithExpiry(ModMemoryModuleTypes.FED_RECENTLY.get(), true, (long) RANGED_FEEDING_TIMER.sample(piglinEntity.level.random));
+        piglinEntity.getBrain().setMemoryWithExpiry(ModMemoryModuleTypes.FED_RECENTLY.get(), true, (long) RANGED_FEEDING_TIMER.sample(piglinEntity.level().random));
     }
 
     private static boolean hasFedRecently(Piglin piglinEntity){
@@ -264,7 +266,7 @@ public class PiglinTasksHelper {
     public static InteractionResult getAgeableActionResultType(AbstractPiglin piglinEntity, Player playerEntity, InteractionHand handIn, InteractionResult actionResultTypeIn) {
         ItemStack itemStack = playerEntity.getItemInHand(handIn);
         if(isPiglinFoodItem(itemStack)){
-            if(!piglinEntity.level.isClientSide){
+            if(!piglinEntity.level().isClientSide){
                 actionResultTypeIn = processInteractionForFoodItem(piglinEntity, playerEntity, handIn);
             }
             else{
@@ -278,7 +280,7 @@ public class PiglinTasksHelper {
     public static InteractionResult getGreedActionResultType(AbstractPiglin piglinEntity, Player playerEntity, InteractionHand handIn, InteractionResult actionResultTypeIn) {
         ItemStack itemStack = playerEntity.getItemInHand(handIn);
         if(isBarterItem(itemStack)){
-            if(!piglinEntity.level.isClientSide){
+            if(!piglinEntity.level().isClientSide){
                 actionResultTypeIn = processInteractionForPiglinGreedItem(piglinEntity, playerEntity, handIn);
             }
             else{
@@ -287,7 +289,7 @@ public class PiglinTasksHelper {
             }
         }
         else if(isPiglinLoved(itemStack)){
-            if(!piglinEntity.level.isClientSide){
+            if(!piglinEntity.level().isClientSide){
                 actionResultTypeIn = processInteractionForPiglinLovedItem(piglinEntity, playerEntity, handIn);
             }
             else{
@@ -303,22 +305,22 @@ public class PiglinTasksHelper {
     }
 
     private static List<ItemStack> getBlockBarteringLoot(AbstractPiglin piglinEntity){
-        if(piglinEntity.level.getServer() != null){
-            LootTable loottable = piglinEntity.level.getServer().getLootTables().get(PIGLIN_BARTERING_EXPENSIVE);
-            return loottable.getRandomItems((new LootContext.Builder((ServerLevel)piglinEntity.level)).withParameter(LootContextParams.THIS_ENTITY, piglinEntity).withRandom(piglinEntity.level.random).create(LootContextParamSets.PIGLIN_BARTER));
+        if(piglinEntity.level().getServer() != null){
+            LootTable loottable = piglinEntity.level().getServer().getLootData().getLootTable(PIGLIN_BARTERING_EXPENSIVE);
+            return loottable.getRandomItems((new LootParams.Builder((ServerLevel)piglinEntity.level())).withParameter(LootContextParams.THIS_ENTITY, piglinEntity).create(LootContextParamSets.PIGLIN_BARTER));
         }
         return Collections.emptyList();
     }
 
     private static List<ItemStack> getBarterResponseItems(AbstractPiglin piglin) {
-        LootTable loottable = piglin.level.getServer().getLootTables().get(BuiltInLootTables.PIGLIN_BARTERING);
-        return loottable.getRandomItems((new LootContext.Builder((ServerLevel)piglin.level)).withParameter(LootContextParams.THIS_ENTITY, piglin).withRandom(piglin.level.random).create(LootContextParamSets.PIGLIN_BARTER));
+        LootTable loottable = piglin.level().getServer().getLootData().getLootTable(BuiltInLootTables.PIGLIN_BARTERING);
+        return loottable.getRandomItems((new LootParams.Builder((ServerLevel)piglin.level())).withParameter(LootContextParams.THIS_ENTITY, piglin).create(LootContextParamSets.PIGLIN_BARTER));
     }
 
     private static List<ItemStack> getNuggetBarteringLoot(AbstractPiglin piglinEntity){
-        if(piglinEntity.level.getServer() != null){
-            LootTable loottable = piglinEntity.level.getServer().getLootTables().get(PIGLIN_BARTERING_CHEAP);
-            return loottable.getRandomItems((new LootContext.Builder((ServerLevel)piglinEntity.level)).withParameter(LootContextParams.THIS_ENTITY, piglinEntity).withRandom(piglinEntity.level.random).create(LootContextParamSets.PIGLIN_BARTER));
+        if(piglinEntity.level().getServer() != null){
+            LootTable loottable = piglinEntity.level().getServer().getLootData().getLootTable(PIGLIN_BARTERING_CHEAP);
+            return loottable.getRandomItems((new LootParams.Builder((ServerLevel)piglinEntity.level())).withParameter(LootContextParams.THIS_ENTITY, piglinEntity).create(LootContextParamSets.PIGLIN_BARTER));
 
         }
         return Collections.emptyList();
@@ -451,17 +453,17 @@ public class PiglinTasksHelper {
                     e -> e.setShakeHeadTicks(Emotive.DEFAULT_SHAKE_TICKS)
             );
 
-            if(piglin.level.isClientSide){
+            if(piglin.level().isClientSide){
                 piglin.playSound(SoundEvents.PIGLIN_ANGRY, 1.0F, piglin.getVoicePitch());
             } else{
-                piglin.level.broadcastEntityEvent(piglin, (byte) GeneralHelper.DECLINE_ID);
+                piglin.level().broadcastEntityEvent(piglin, (byte) GeneralHelper.DECLINE_ID);
             }
         }
         else{
-            if(piglin.level.isClientSide){
+            if(piglin.level().isClientSide){
                 piglin.playSound(SoundEvents.PIGLIN_CELEBRATE, 1.0F, piglin.getVoicePitch());
             } else {
-                piglin.level.broadcastEntityEvent(piglin, (byte) GeneralHelper.ACCEPT_ID);
+                piglin.level().broadcastEntityEvent(piglin, (byte) GeneralHelper.ACCEPT_ID);
                 ReputationHelper.setPreviousInteractor(piglin, player);
             }
         }
@@ -477,12 +479,12 @@ public class PiglinTasksHelper {
         if (victim.getType().is(PIGLINS_HUNT)) {
             return false;
         } else {
-            return (new Random(dancer.level.getGameTime())).nextFloat() < SapienceConfig.COMMON.DANCE_CHANCE.get();
+            return (new Random(dancer.level().getGameTime())).nextFloat() < SapienceConfig.COMMON.DANCE_CHANCE.get();
         }
     }
 
     public static boolean wantsToPickUp(Piglin piglin, ItemStack itemStack) {
-        return piglin.level.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING)
+        return piglin.level().getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING)
                 && piglin.canPickUpLoot()
                 && piglinWantsToPickUp(piglin, itemStack);
     }

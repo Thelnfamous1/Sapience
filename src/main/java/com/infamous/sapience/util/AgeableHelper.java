@@ -96,7 +96,7 @@ public class AgeableHelper {
         if(ageable != null){
             if (ageable.getForcedAgeTimer() > 0) {
                 if (ageable.getForcedAgeTimer() % 4 == 0) {
-                    mobEntity.level.broadcastEntityEvent(mobEntity, (byte) AgeableHelper.GROWING_ID);
+                    mobEntity.level().broadcastEntityEvent(mobEntity, (byte) AgeableHelper.GROWING_ID);
                 }
                 ageable.setForcedAgeTimer(ageable.getForcedAgeTimer() - 1);
             }

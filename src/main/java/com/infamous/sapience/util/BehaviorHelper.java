@@ -1,14 +1,10 @@
 package com.infamous.sapience.util;
 
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.ai.behavior.*;
 import net.minecraft.world.entity.ai.memory.MemoryModuleType;
-import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.entity.item.ItemEntity;
-import net.minecraft.world.entity.monster.piglin.*;
-import net.minecraft.world.level.GameRules;
+import net.minecraft.world.entity.monster.piglin.AbstractPiglin;
+import net.minecraft.world.entity.monster.piglin.Piglin;
 
 import java.util.Optional;
 
@@ -34,7 +30,7 @@ public class BehaviorHelper {
         entity.getBrain().getMemory(MemoryModuleType.ATTACK_TARGET).ifPresent(
                 le -> {
                     if(le.getType().is(PiglinTasksHelper.PIGLINS_HUNT) && le.isDeadOrDying()){
-                        entity.getBrain().setMemoryWithExpiry(MemoryModuleType.HUNTED_RECENTLY, true, PiglinTasksHelper.TIME_BETWEEN_HUNTS.sample(entity.level.random));
+                        entity.getBrain().setMemoryWithExpiry(MemoryModuleType.HUNTED_RECENTLY, true, PiglinTasksHelper.TIME_BETWEEN_HUNTS.sample(entity.level().random));
                     }
                 }
         );

@@ -363,7 +363,7 @@ public class GreedHelper {
                     PiglinTasksHelper.dropOffhandItemAndSetItemStackToOffhand(ally, craftedItem);
                     PiglinTasksHelper.setAdmiringItem(ally);
                     PiglinTasksHelper.clearWalkPath(ally);
-                    ally.level.broadcastEntityEvent(ally, (byte) GeneralHelper.ACCEPT_ID);
+                    ally.level().broadcastEntityEvent(ally, (byte) GeneralHelper.ACCEPT_ID);
                     allyDesiredItems.remove(desiredItem);
                 }
             }

@@ -26,7 +26,7 @@ public class PiglinTasksMixin {
     @Inject(at = @At("HEAD"), method = "setAngerTarget")
     private static void setAngerTarget(AbstractPiglin piglinEntity, LivingEntity target, CallbackInfo callbackInfo){
         if(Sensor.isEntityAttackableIgnoringLineOfSight(piglinEntity, target)){
-            piglinEntity.level.broadcastEntityEvent(piglinEntity, (byte) GeneralHelper.ANGER_ID);
+            piglinEntity.level().broadcastEntityEvent(piglinEntity, (byte) GeneralHelper.ANGER_ID);
         }
     }
 

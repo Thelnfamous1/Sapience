@@ -131,7 +131,7 @@ public class ReputationHelper {
     }
 
     public static void makeWitnessesOfMurder(LivingEntity victim, Entity murderer, ReputationEventType killedReputationType, Predicate<LivingEntity> additionalCheck){
-        if (victim.level instanceof ServerLevel serverworld) {
+        if (victim.level() instanceof ServerLevel serverworld) {
             if(victim.getBrain().hasMemoryValue(MemoryModuleType.NEAREST_VISIBLE_LIVING_ENTITIES)){
                 Optional<NearestVisibleLivingEntities> optional = victim.getBrain().getMemory(MemoryModuleType.NEAREST_VISIBLE_LIVING_ENTITIES);
                 optional.ifPresent(nvle -> nvle
@@ -149,8 +149,8 @@ public class ReputationHelper {
     // called by the mob's tick method - use LivingUpdateEvent instead
     public static void updateGossip(Mob mobEntity) {
         Reputation reputation = getReputationCapability(mobEntity);
-        if(reputation != null && mobEntity.level instanceof ServerLevel){
-            long gameTime = mobEntity.level.getGameTime();
+        if(reputation != null && mobEntity.level() instanceof ServerLevel){
+            long gameTime = mobEntity.level().getGameTime();
             if (reputation.getLastGossipDecay() == 0L) {
                 reputation.setLastGossipDecay(gameTime);
             } else if (gameTime >= reputation.getLastGossipDecay() + 24000L) {
@@ -188,9 +188,9 @@ public class ReputationHelper {
     @Nullable
     public static Entity getPreviousInteractor(Mob mobEntity){
         Reputation reputation = getReputationCapability(mobEntity);
-        if(reputation != null && mobEntity.level instanceof ServerLevel){
+        if(reputation != null && mobEntity.level() instanceof ServerLevel){
             if(reputation.getPreviousInteractor() != null){
-                return ((ServerLevel) mobEntity.level).getEntity(reputation.getPreviousInteractor());
+                return ((ServerLevel) mobEntity.level()).getEntity(reputation.getPreviousInteractor());
             }
             else return null;
         }
@@ -209,7 +209,7 @@ public class ReputationHelper {
 
     public static void updatePreviousInteractorReputation(Mob mobEntity, ReputationEventType reputationType) {
         Entity previousInteractor = getPreviousInteractor(mobEntity);
-        if(previousInteractor != null && mobEntity.level instanceof ServerLevel serverWorld){
+        if(previousInteractor != null && mobEntity.level() instanceof ServerLevel serverWorld){
             updatePiglinReputation(mobEntity, reputationType, previousInteractor);
             setPreviousInteractor(mobEntity, null);
         }

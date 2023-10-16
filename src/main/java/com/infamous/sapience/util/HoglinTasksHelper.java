@@ -2,37 +2,33 @@ package com.infamous.sapience.util;
 
 import com.google.common.collect.ImmutableList;
 import com.infamous.sapience.Sapience;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvents;
+import net.minecraft.tags.BlockTags;
+import net.minecraft.tags.ItemTags;
 import net.minecraft.tags.TagKey;
 import net.minecraft.util.TimeUtil;
 import net.minecraft.util.valueproviders.UniformInt;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.Brain;
 import net.minecraft.world.entity.ai.behavior.BehaviorUtils;
 import net.minecraft.world.entity.ai.memory.MemoryModuleType;
 import net.minecraft.world.entity.ai.memory.NearestVisibleLivingEntities;
 import net.minecraft.world.entity.ai.sensing.Sensor;
-import net.minecraft.world.entity.monster.piglin.AbstractPiglin;
+import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.monster.hoglin.Hoglin;
-import net.minecraft.world.entity.animal.Animal;
+import net.minecraft.world.entity.monster.piglin.AbstractPiglin;
 import net.minecraft.world.entity.monster.piglin.Piglin;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.schedule.Activity;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.tags.BlockTags;
-import net.minecraft.tags.ItemTags;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.GameRules;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.common.Tags;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.List;
 import java.util.Optional;
@@ -72,7 +68,7 @@ public class HoglinTasksHelper {
             setAteRecently(animalEntity);
         }
         int growingAge = animalEntity.getAge();
-        Level animalWorld = animalEntity.level;
+        Level animalWorld = animalEntity.level();
         if(!animalWorld.isClientSide && growingAge == 0 && !animalEntity.isInLove()){
             animalEntity.setInLove(null);
         }
@@ -114,15 +110,15 @@ public class HoglinTasksHelper {
     public static void handleHoglinInteractPost(Hoglin hoglin, Player playerEntity, InteractionHand hand, InteractionResult interactionResult) {
         ItemStack stack = playerEntity.getItemInHand(hand);
         if(interactionResult.consumesAction()){
-            if(hoglin.isFood(stack) && !hoglin.level.isClientSide){
+            if(hoglin.isFood(stack) && !hoglin.level().isClientSide){
                 setAteRecently(hoglin);
             }
-            else if(hoglin.level.isClientSide){
+            else if(hoglin.level().isClientSide){
                 hoglin.playSound(SoundEvents.HOGLIN_AMBIENT, 1.0F, hoglin.getVoicePitch());
             }
         }
         else{
-            if(hoglin.level.isClientSide){
+            if(hoglin.level().isClientSide){
                 hoglin.playSound(SoundEvents.HOGLIN_ANGRY, 1.0F, hoglin.getVoicePitch());
             }
         }
@@ -197,7 +193,7 @@ public class HoglinTasksHelper {
     private static void setAvoidTarget(Hoglin hoglin, LivingEntity target) {
         hoglin.getBrain().eraseMemory(MemoryModuleType.ATTACK_TARGET);
         hoglin.getBrain().eraseMemory(MemoryModuleType.WALK_TARGET);
-        hoglin.getBrain().setMemoryWithExpiry(MemoryModuleType.AVOID_TARGET, target, (long)RETREAT_DURATION.sample(hoglin.level.random));
+        hoglin.getBrain().setMemoryWithExpiry(MemoryModuleType.AVOID_TARGET, target, (long)RETREAT_DURATION.sample(hoglin.level().random));
     }
 
     private static boolean piglinsOutnumberHoglins(Hoglin hoglin) {
@@ -211,7 +207,7 @@ public class HoglinTasksHelper {
     }
 
     public static boolean wantsToPickUp(Hoglin hoglin, ItemStack itemStack) {
-        return hoglin.level.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING)
+        return hoglin.level().getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING)
                 && hoglin.canPickUpLoot()
                 && canPickUpItemStack(hoglin, itemStack);
     }
